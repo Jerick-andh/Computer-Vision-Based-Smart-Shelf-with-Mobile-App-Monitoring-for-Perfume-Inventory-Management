@@ -898,6 +898,15 @@ private fun SettingsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit,
             Text("${userRole?.uppercase() ?: "STAFF"} • ${userBranch ?: "Unknown"}", color = Color(0xFFD1D5DB), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
         }
         val role by viewModel.userRole.collectAsState()
+        val debugMsg by viewModel.debugMessage.collectAsState()
+        
+        if (debugMsg.isNotEmpty()) {
+            AppCard(background = Color(0xFF450A0A), border = Color(0xFFEF4444)) {
+                Text("DEBUG ERROR:", color = Color(0xFFFCA5A5), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(debugMsg, color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+        
         SettingSection("System") {
             if (role == "admin") {
                 SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }

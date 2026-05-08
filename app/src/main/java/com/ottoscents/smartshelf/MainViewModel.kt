@@ -24,10 +24,16 @@ class MainViewModel : ViewModel() {
     init {
         authRepo.currentUser?.uid?.let { uid ->
             viewModelScope.launch {
-                val details = firestoreRepo.getUserDetails(uid)
+                val details = firestoreRepo.getUserDetails(uid) { error ->
+                    _debugMessage.value = error
+                }
                 if (details != null) {
                     _userRole.value = details.role
                     _userBranch.value = details.branch
+                } else {
+                    if (_debugMessage.value.isEmpty()) {
+                        _debugMessage.value = "Init: Details null for $uid"
+                    }
                 }
             }
         }
@@ -44,6 +50,9 @@ class MainViewModel : ViewModel() {
 
     private val _loginError = MutableStateFlow<String?>(null)
     val loginError: StateFlow<String?> = _loginError.asStateFlow()
+
+    private val _debugMessage = MutableStateFlow<String>("")
+    val debugMessage: StateFlow<String> = _debugMessage.asStateFlow()
 
     val inventoryList: StateFlow<List<InventoryItem>> = firestoreRepo.getInventoryStream()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -69,10 +78,16 @@ class MainViewModel : ViewModel() {
             val success = authRepo.login(email, pass)
             if (success) {
                 authRepo.currentUser?.uid?.let { uid ->
-                    val details = firestoreRepo.getUserDetails(uid)
+                    val details = firestoreRepo.getUserDetails(uid) { error ->
+                        _debugMessage.value = error
+                    }
                     if (details != null) {
                         _userRole.value = details.role
                         _userBranch.value = details.branch
+                    } else {
+                        if (_debugMessage.value.isEmpty()) {
+                            _debugMessage.value = "Login: Details null for $uid"
+                        }
                     }
                 }
                 _isLoggedIn.value = true

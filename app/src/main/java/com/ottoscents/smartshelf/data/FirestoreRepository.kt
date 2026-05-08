@@ -89,7 +89,7 @@ class FirestoreRepository {
         }
     }
 
-    suspend fun getUserDetails(uid: String): UserRole? {
+    suspend fun getUserDetails(uid: String, onError: (String) -> Unit = {}): UserRole? {
         return try {
             val doc = db.collection("users").document(uid).get().await()
             if (doc.exists()) {
@@ -97,10 +97,12 @@ class FirestoreRepository {
                 val branchStr = doc.getString("branch") ?: ""
                 UserRole(id = doc.id, role = roleStr, branch = branchStr)
             } else {
+                onError("Doc does not exist for $uid")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            onError("Exception: ${e.message}")
             null
         }
     }
