@@ -36,6 +36,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -46,6 +50,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableStateListOf
@@ -92,6 +97,13 @@ private val TealBg = Color(0xFFF0FDFA)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ensure Firebase is initialized
+        com.google.firebase.FirebaseApp.initializeApp(this)
+        
+        // Enable Firestore logging
+        com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(true)
+        
         setContent {
             OttoScentsApp()
         }
@@ -125,8 +137,23 @@ private enum class Screen {
 @Composable
 fun OttoScentsApp() {
     val viewModel: MainViewModel = viewModel()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val backStack = remember { mutableStateListOf<Screen>() }
-    var screen by remember { mutableStateOf(Screen.Login) }
+    var screen by remember { mutableStateOf(if (isLoggedIn) Screen.Home else Screen.Login) }
+    var selectedItem by remember { mutableStateOf<InventoryItem?>(null) }
+
+    // Handle Login/Logout State Navigation
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            if (screen == Screen.Login) {
+                backStack.clear()
+                screen = Screen.Home
+            }
+        } else {
+            backStack.clear()
+            screen = Screen.Login
+        }
+    }
 
     fun navigate(target: Screen) {
         backStack.add(screen)
@@ -149,7 +176,7 @@ fun OttoScentsApp() {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = AppBg) {
             if (screen == Screen.Login) {
-                LoginScreen(onLogin = { replace(Screen.Home) })
+                LoginScreen(viewModel = viewModel)
             } else {
                 Column(
                     modifier = Modifier
@@ -163,9 +190,12 @@ fun OttoScentsApp() {
                     ) {
                         when (screen) {
                             Screen.Home -> HomeScreen(viewModel, ::navigate)
-                            Screen.Inventory -> InventoryScreen(viewModel, ::navigate)
-                            Screen.ProductDetail -> ProductDetailScreen(::navigate, ::back)
-                            Screen.ProductForm -> ProductFormScreen(isEdit = backStack.lastOrNull() == Screen.ProductDetail, navigate = ::navigate, back = ::back)
+                            Screen.Inventory -> InventoryScreen(viewModel) { item ->
+                                selectedItem = item
+                                navigate(Screen.ProductDetail)
+                            }
+                            Screen.ProductDetail -> ProductDetailScreen(selectedItem, ::navigate, ::back)
+                            Screen.ProductForm -> ProductFormScreen(viewModel = viewModel, isEdit = backStack.lastOrNull() == Screen.ProductDetail, navigate = ::navigate, back = ::back)
                             Screen.Shelf -> ShelfScreen(::navigate)
                             Screen.ShelfAreaDetail -> ShelfAreaDetailScreen(::back)
                             Screen.Temperature -> TemperatureMonitorScreen(::navigate, ::back)
@@ -388,6 +418,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FormField(label: String, value: String, placeholder: String = "", numeric: Boolean = false, onChange: (String) -> Unit = {}) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -406,9 +437,10 @@ private fun FormField(label: String, value: String, placeholder: String = "", nu
 }
 
 @Composable
-private fun LoginScreen(onLogin: () -> Unit) {
+private fun LoginScreen(viewModel: MainViewModel) {
     var email by remember { mutableStateOf("admin@ottoscents.com") }
     var password by remember { mutableStateOf("password123") }
+    val loginError by viewModel.loginError.collectAsState()
 
     Column(
         modifier = Modifier
@@ -425,8 +457,13 @@ private fun LoginScreen(onLogin: () -> Unit) {
             }
             OutlinedTextField(value = email, onValueChange = { email = it }, placeholder = { Text("Email address") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
             OutlinedTextField(value = password, onValueChange = { password = it }, placeholder = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
+            
+            if (loginError != null) {
+                Text(loginError!!, color = Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            }
+
             Text("Forgot password?", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End, fontSize = 14.sp, color = Muted, fontWeight = FontWeight.Medium)
-            AppButton("Sign In", onClick = onLogin)
+            AppButton("Sign In", onClick = { viewModel.login(email, password) })
         }
         Text("© 2026 Otto Scents. All rights reserved.", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted)
     }
@@ -512,10 +549,10 @@ private fun ActionCard(icon: String, label: String, modifier: Modifier = Modifie
 
 
 @Composable
-private fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
+private fun InventoryScreen(viewModel: MainViewModel, onSelectItem: (InventoryItem) -> Unit) {
     val inventoryItems by viewModel.inventoryList.collectAsState()
     ScrollScreen(
-        topBar = { TopBar("Inventory", right = { AppButton("+", modifier = Modifier.width(44.dp).height(44.dp), onClick = { navigate(Screen.ProductForm) }) }) }
+        topBar = { TopBar("Inventory", right = { AppButton("+", modifier = Modifier.width(44.dp).height(44.dp), onClick = { /* navigate(Screen.ProductForm) logic would go here if needed */ }) }) }
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(value = "", onValueChange = {}, placeholder = { Text("Search perfumes...") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(18.dp))
@@ -528,7 +565,7 @@ private fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit
             StatusChip("Needs Review", ChipVariant.Outline)
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            inventoryItems.forEach { item -> InventoryCard(item, onClick = { navigate(Screen.ProductDetail) }) }
+            inventoryItems.forEach { item -> InventoryCard(item, onClick = { onSelectItem(item) }) }
         }
     }
 }
@@ -575,7 +612,9 @@ private fun CountText(label: String, value: String) {
 }
 
 @Composable
-private fun ProductDetailScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
+private fun ProductDetailScreen(item: InventoryItem?, navigate: (Screen) -> Unit, back: () -> Unit) {
+    val viewModel: MainViewModel = viewModel()
+    
     ScrollScreen(topBar = { TopBar("Product Detail", showBack = true, onBack = back, right = { Text("✎", modifier = Modifier.clickable { navigate(Screen.ProductForm) }.padding(8.dp), color = Muted, fontSize = 20.sp) }) }) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(1.35f).clip(RoundedCornerShape(30.dp)).background(SoftGray), contentAlignment = Alignment.Center) {
             Text("No Image", color = LightMuted, fontWeight = FontWeight.Medium)
@@ -583,8 +622,8 @@ private fun ProductDetailScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
         Column {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Midnight Oud", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = TextBlack)
-                    Text("Otto Scents Classic • Woody", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp))
+                    Text(item?.name ?: "Midnight Oud", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = TextBlack)
+                    Text("${item?.category ?: "Otto Scents Classic"} • Woody", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp))
                 }
                 StatusChip("Normal Stock")
             }
@@ -592,17 +631,25 @@ private fun ProductDetailScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
         AppCard(background = CardBg) {
             DetailRow("Branch", "San Pablo")
             Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
-            DetailRow("Shelf Area", "Area A1")
+            DetailRow("Shelf Area", item?.shelf ?: "Area A1")
             Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
             DetailRow("Bottle Size", "50ml")
             Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
             DetailRow("Min. Threshold", "5 bottles")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth()) {
-            CountCard("Recorded", "12", Modifier.weight(1f))
-            CountCard("Detected", "12", Modifier.weight(1f), dark = true)
+            CountCard("Recorded", item?.recorded?.toString() ?: "12", Modifier.weight(1f))
+            CountCard("Detected", item?.detected?.toString() ?: "12", Modifier.weight(1f), dark = true)
         }
         AppButton("Create Restock", onClick = { navigate(Screen.CreateRestock) })
+        
+        AppButton("Delete Product", variant = ButtonVariant.Danger, onClick = {
+            item?.id?.let { id ->
+                viewModel.deleteInventoryItem(id)
+            }
+            back()
+        })
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -628,8 +675,56 @@ private fun CountCard(label: String, value: String, modifier: Modifier = Modifie
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProductFormScreen(isEdit: Boolean, navigate: (Screen) -> Unit, back: () -> Unit) {
+private fun FormDropdownField(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Muted, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(1.3f)
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier.menuAnchor(),
+                textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                shape = RoundedCornerShape(14.dp)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { selectionOption ->
+                    DropdownMenuItem(
+                        text = { Text(selectionOption) },
+                        onClick = {
+                            onSelect(selectionOption)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductFormScreen(viewModel: MainViewModel, isEdit: Boolean, navigate: (Screen) -> Unit, back: () -> Unit) {
     var name by remember { mutableStateOf(if (isEdit) "Midnight Oud" else "") }
     var line by remember { mutableStateOf(if (isEdit) "Otto Scents Classic" else "") }
     var family by remember { mutableStateOf(if (isEdit) "Woody" else "") }
@@ -653,14 +748,27 @@ private fun ProductFormScreen(isEdit: Boolean, navigate: (Screen) -> Unit, back:
             FormField("Bottle Size (ml)", size, "50", numeric = true) { size = it }
         }
         Section("Placement") {
-            FormField("Branch", branch, "Select branch") { branch = it }; ThinDivider()
-            FormField("Shelf Area", area, "Area A1") { area = it }
+            FormDropdownField("Branch", branch, listOf("San Pablo", "Lipa")) { branch = it }
+            ThinDivider()
+            FormDropdownField("Shelf Area", area, listOf("Area A1", "Area A2", "Area B1", "Area B2", "Area C1", "Area C2")) { area = it }
         }
         Section("Stock") {
             FormField("Min. Threshold", threshold, "5", numeric = true) { threshold = it }; ThinDivider()
             FormField("Recorded Count", recorded, "0", numeric = true) { recorded = it }
         }
-        AppButton(if (isEdit) "Save Changes" else "Add Product", onClick = back)
+        AppButton(if (isEdit) "Save Changes" else "Add Product", onClick = {
+            viewModel.saveInventoryItem(
+                InventoryItem(
+                    name = name,
+                    category = family,
+                    shelf = area,
+                    recorded = recorded.toIntOrNull() ?: 0,
+                    status = "normal",
+                    lastUpdated = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
+                )
+            )
+            back()
+        })
         if (isEdit) AppButton("Delete Product", variant = ButtonVariant.Danger, onClick = back)
         TextButton(onClick = back, modifier = Modifier.fillMaxWidth()) { Text("Cancel", color = Muted) }
     }
@@ -668,7 +776,26 @@ private fun ProductFormScreen(isEdit: Boolean, navigate: (Screen) -> Unit, back:
 
 @Composable
 private fun ShelfScreen(navigate: (Screen) -> Unit) {
+    val viewModel: MainViewModel = viewModel()
+    val handshakeStatus by viewModel.handshakeStatus.collectAsState()
+
     ScrollScreen(topBar = { TopBar("Shelf Monitor") }) {
+        // Handshake Feedback Loop UI
+        AppCard(
+            background = if (handshakeStatus.contains("VERIFIED")) GreenBg else if (handshakeStatus.contains("ERROR")) RedBg else BlueBg,
+            border = if (handshakeStatus.contains("VERIFIED")) Green else Color.Transparent
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text("Hardware Handshake Status", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Muted)
+                    Text(handshakeStatus, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (handshakeStatus.contains("VERIFIED")) Green else TextBlack)
+                }
+                if (handshakeStatus != "CONNECTION_VERIFIED_200_OK") {
+                    AppButton("Test Link", modifier = Modifier.width(100.dp).height(36.dp), onClick = { viewModel.triggerShelfCameraHandshake() })
+                }
+            }
+        }
+
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(32.dp)).background(Color(0xFFE5E7EB)).border(1.dp, BorderGray, RoundedCornerShape(32.dp))) {
             Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) { Text("◉", color = LightMuted, fontSize = 32.sp); Text("Camera Feed", color = LightMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
             Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -54,6 +54,9 @@ class MainViewModel : ViewModel() {
     private val _debugMessage = MutableStateFlow<String>("")
     val debugMessage: StateFlow<String> = _debugMessage.asStateFlow()
 
+    private val _handshakeStatus = MutableStateFlow<String>("IDLE")
+    val handshakeStatus: StateFlow<String> = _handshakeStatus.asStateFlow()
+
     val inventoryList: StateFlow<List<InventoryItem>> = firestoreRepo.getInventoryStream()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -120,5 +123,26 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    /**
+     * MOCKUP HANDSHAKE: Demonstrates Architectural Readiness for Camera Hardware Integration
+     * Following 4-step Universal Implementation:
+     */
+    fun triggerShelfCameraHandshake() {
+        viewModelScope.launch {
+            // 1. Isolate Logic Path: Start connection attempt
+            _handshakeStatus.value = "CONNECTING..."
+            kotlinx.coroutines.delay(1500) // Simulate network/hardware latency
 
+            // 3. Simulate Response: Mock data from an external camera sensor
+            val mockExternalSignal = "CAMERA_DATA_v1.0" 
+
+            // 2. Gatekeeper Validation: Verify the "external" signal
+            if (mockExternalSignal.startsWith("CAMERA_DATA")) {
+                // 4. Feedback Loop: Send success back to UI
+                _handshakeStatus.value = "CONNECTION_VERIFIED_200_OK"
+            } else {
+                _handshakeStatus.value = "ERROR_UNAUTHORIZED_DEVICE"
+            }
+        }
+    }
 }
