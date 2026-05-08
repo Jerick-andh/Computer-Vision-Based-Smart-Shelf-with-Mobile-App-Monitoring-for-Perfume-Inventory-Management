@@ -891,33 +891,18 @@ private fun ReportsScreen(back: () -> Unit) {
 private fun SettingsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onLogout: () -> Unit) {
     ScrollScreen(topBar = { TopBar("Settings") }) {
         AppCard(background = Color(0xFF111827), border = Color.Transparent) {
-            val userRole by viewModel.userRole.collectAsState()
             val userBranch by viewModel.userBranch.collectAsState()
             val email = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "Unknown User"
             Text(email, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("${userRole?.uppercase() ?: "STAFF"} • ${userBranch ?: "Unknown"}", color = Color(0xFFD1D5DB), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+            Text("${userBranch ?: "Unknown"} Branch", color = Color(0xFFD1D5DB), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
         }
-        val role by viewModel.userRole.collectAsState()
-        val debugMsg by viewModel.debugMessage.collectAsState()
-        
-        if (debugMsg.isNotEmpty()) {
-            AppCard(background = Color(0xFF450A0A), border = Color(0xFFEF4444)) {
-                Text("DEBUG ERROR:", color = Color(0xFFFCA5A5), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(debugMsg, color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-            }
-        }
-        
         SettingSection("System") {
-            if (role == "admin") {
-                SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }
-                SettingRow("Temperature Threshold", "25°C") { navigate(Screen.Temperature) }
-                SettingRow("Low Stock Threshold", "5 bottles") {}
-            }
+            SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }
+            SettingRow("Temperature Threshold", "25°C") { navigate(Screen.Temperature) }
+            SettingRow("Low Stock Threshold", "5 bottles") {}
             SettingRow("Cloud Sync Status", "Connected") {}
         }
-        if (role == "admin") {
-            SettingSection("Reports") { SettingRow("Reports", null) { navigate(Screen.Reports) }; SettingRow("System Activity Logs", null) { navigate(Screen.SystemLogs) } }
-        }
+        SettingSection("Reports") { SettingRow("Reports", null) { navigate(Screen.Reports) }; SettingRow("System Activity Logs", null) { navigate(Screen.SystemLogs) } }
         SettingSection("Help & Guides") { SettingRow("Help & Guides", null) { navigate(Screen.Help) } }
         AppButton("Logout", variant = ButtonVariant.Outline, onClick = onLogout)
     }
