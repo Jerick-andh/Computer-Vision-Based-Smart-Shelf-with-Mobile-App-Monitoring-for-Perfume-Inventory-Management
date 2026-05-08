@@ -90,8 +90,19 @@ class FirestoreRepository {
     }
 
     suspend fun getUserDetails(uid: String): UserRole? {
-        val doc = db.collection("users").document(uid).get().await()
-        return doc.toObject(UserRole::class.java)
+        return try {
+            val doc = db.collection("users").document(uid).get().await()
+            if (doc.exists()) {
+                val roleStr = doc.getString("role") ?: "staff"
+                val branchStr = doc.getString("branch") ?: ""
+                UserRole(id = doc.id, role = roleStr, branch = branchStr)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     fun getSystemLogsStream(): Flow<List<SystemActivity>> = callbackFlow {
