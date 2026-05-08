@@ -1,0 +1,57 @@
+     }
+ }
+ 
+-private data class FanActivity(val triggerTemperature: Double, val startTime: String, val stopTime: String?, val duration: String, val status: String, val branch: String, val shelfArea: String)
+ @Composable
+-private fun FanActivityLogsScreen(back: () -> Unit) {
+-    val logs = listOf(FanActivity(26.8, "May 1, 2026 ΓÇó 2:45 PM", "May 1, 2026 ΓÇó 3:15 PM", "30 mins", "stopped", "San Pablo", "Area A1"), FanActivity(27.2, "May 1, 2026 ΓÇó 11:20 AM", "May 1, 2026 ΓÇó 11:45 AM", "25 mins", "stopped", "San Pablo", "Area B3"), FanActivity(25.4, "Apr 30, 2026 ΓÇó 4:30 PM", "Apr 30, 2026 ΓÇó 4:32 PM", "2 mins", "manual_stop", "Lipa", "Area A1"), FanActivity(26.1, "Apr 29, 2026 ΓÇó 10:15 AM", null, "active", "active", "Lipa", "Area C1"))
+-    ScrollScreen(background = AppBg, topBar = { TopBar("Fan Activity Logs", showBack = true, onBack = back) }) {
+-        AppCard(background = CardBg) { Text("Cooling system activity records", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 14.sp, color = Muted); Text("Fan activates when temperature exceeds 25┬░C", modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted) }
+-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Activity".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp); StatusChip("Filter", ChipVariant.Outline, small = true) }
+-        logs.forEach { FanActivityCard(it) }
+-    }
+-}
+-
+-@Composable
+-private fun FanActivityCard(log: FanActivity) {
+-    val label = when (log.status) { "active" -> "Currently Running"; "manual_stop" -> "Manually Stopped"; else -> "Auto Stopped" }
+-    val variant = if (log.status == "manual_stop") ChipVariant.Warning else ChipVariant.Normal
+-    AppCard(background = Color.White, radius = 18.dp) {
+-        Row(verticalAlignment = Alignment.Top) { Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (log.status == "active") BlueBg else SoftGray), contentAlignment = Alignment.Center) { Text("Γÿü") }; Spacer(Modifier.width(12.dp)); Column(modifier = Modifier.weight(1f)) { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium); StatusChip(log.status.replace("_", " "), variant, small = true) }; Text("${log.branch} ΓÇó ${log.shelfArea}", fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) } }
+-        Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(10.dp))
+-        DetailRow("Trigger Temp:", "${log.triggerTemperature}┬░C", Red); DetailRow("Started:", log.startTime); if (log.stopTime != null) DetailRow("Stopped:", log.stopTime); ThinDivider(); DetailRow("Total Duration", log.duration)
+-        if (log.status == "active") Text("ΓùÅ Fan is currently running", fontSize = 12.sp, color = Blue, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
+-    }
+-}
+-
+-private data class HelpTopic(val id: String, val title: String, val description: String, val paragraphs: List<String>)
+-@Composable
+-private fun HelpGuideScreen(back: () -> Unit) {
+-    var expanded by remember { mutableStateOf("needs_review") }
+-    val topics = listOf(
+-        HelpTopic("needs_review", "Understanding \"Needs Review\"", "Learn what this status means and how to handle it", listOf("When you see 'Needs Review', it means the smart shelf detected something unclear or unexpected.", "This could be due to poor lighting, bottles placed incorrectly, or new products not yet in the system.", "To resolve: Go to the shelf, check the bottles manually, and confirm the actual count in the app.", "You can also take a new photo to help the system learn better.")),
+-        HelpTopic("verify_shelf", "Verifying Shelf Results", "How to confirm what the camera detected", listOf("After each shelf check, the app shows you how many bottles were detected.", "Compare this number with what you see on the shelf.", "If the numbers match, tap 'Confirm' to accept the result.", "If they don't match, tap 'Needs Review' and count manually.", "Always verify important changes like restocks or missing bottles.")),
+-        HelpTopic("schedule", "Changing Shelf Check Schedule", "Adjust how often the system checks inventory", listOf("Go to Settings ΓåÆ Shelf Check Schedule.", "You can choose how often the camera checks the shelf (every 1, 2, 4, or 8 hours).", "For busy stores, check more often (every 1-2 hours).", "For slower stores, every 4-8 hours is enough.", "Changes apply immediately after you save.")),
+-        HelpTopic("temperature", "Responding to Temperature Alerts", "What to do when the shelf gets too hot", listOf("Perfumes should be stored below 25┬░C to maintain quality.", "When temperature goes above 25┬░C, the cooling fan turns on automatically.", "If you get an alert, check that the fan is working (you'll hear it running).", "Make sure nothing is blocking the fan vents.", "If temperature stays high, move bottles to a cooler area temporarily.")),
+-        HelpTopic("cloud_backup", "Handling Cloud Backup Checks", "When the local camera needs cloud help", listOf("Sometimes the camera on the shelf can't get a clear result (poor light, unclear image).", "When this happens, the photo is sent to the cloud for better processing.", "You'll get a notification when cloud processing is done.", "Review the cloud result and confirm if it looks correct.", "If still unclear, you can manually count and update the inventory."))
+-    )
++private fun FanActivityLogsScreen(viewModel: MainViewModel, back: () -> Unit) {
++    val logs by viewModel.fanLogs.collectAsState()
+     ScrollScreen(background = AppBg, topBar = { TopBar("Help & Guide", showBack = true, onBack = back) }) {
+         AppCard(background = CardBg) { Text("Quick Help Guide", fontSize = 16.sp, fontWeight = FontWeight.SemiBold); Text("Simple instructions for using the smart shelf monitoring app.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
+         Text("Common Topics".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp)
+@@ -1129,12 +1105,9 @@ private fun HelpTopicCard(topic: HelpTopic, expanded: Boolean, onClick: () -> Un
+     }
+ }
+ 
+-private data class SystemActivity(val type: String, val description: String, val user: String?, val branch: String, val timestamp: String)
+ @Composable
+-private fun SystemActivityLogsScreen(back: () -> Unit) {
+-    val activities = listOf(
+-        SystemActivity("sync_event", "Cloud synchronization completed", null, "San Pablo", "May 1, 2026 ΓÇó 3:45 PM"), SystemActivity("shelf_check", "Automated shelf check completed for Area A1", null, "San Pablo", "May 1, 2026 ΓÇó 3:30 PM"), SystemActivity("fan_activation", "Cooling fan activated due to high temperature (26.8┬░C)", null, "San Pablo", "May 1, 2026 ΓÇó 2:45 PM"), SystemActivity("inventory_update", "Restock completed: Ocean Breeze (+15 bottles)", "Maria Santos", "San Pablo", "May 1, 2026 ΓÇó 2:30 PM"), SystemActivity("cloud_backup", "Cloud backup check triggered for unclear local result", null, "Lipa", "May 1, 2026 ΓÇó 1:15 PM"), SystemActivity("temperature_alert", "Temperature exceeded safe range (27.2┬░C)", null, "Lipa", "May 1, 2026 ΓÇó 12:00 PM"), SystemActivity("product_update", "Product details updated: Midnight Oud", "Juan Dela Cruz", "San Pablo", "May 1, 2026 ΓÇó 10:15 AM"), SystemActivity("user_login", "User logged in", "Maria Santos", "San Pablo", "May 1, 2026 ΓÇó 8:30 AM"), SystemActivity("schedule_change", "Shelf check schedule updated to every 2 hours", "Admin", "San Pablo", "Apr 30, 2026 ΓÇó 6:00 PM"), SystemActivity("shelf_check", "Manual shelf check initiated for Area B3", "Ana Reyes", "San Pablo", "Apr 30, 2026 ΓÇó 4:30 PM")
+-    )
++private fun SystemActivityLogsScreen(viewModel: MainViewModel, back: () -> Unit) {
++    val activities by viewModel.systemLogs.collectAsState()
+     ScrollScreen(background = AppBg, topBar = { TopBar("System Activity Logs", showBack = true, onBack = back) }) {
+         AppCard(background = CardBg) { Text("System events and user actions", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 14.sp, color = Muted); Text("Track all important activities across branches", modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted) }
+         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Activity".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp); StatusChip("Filter", ChipVariant.Outline, small = true) }

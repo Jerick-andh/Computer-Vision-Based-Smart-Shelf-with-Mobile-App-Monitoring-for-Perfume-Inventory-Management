@@ -1,5 +1,7 @@
 package com.ottoscents.smartshelf
 
+import com.ottoscents.smartshelf.data.*
+
 import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -43,6 +45,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -119,6 +124,7 @@ private enum class Screen {
 
 @Composable
 fun OttoScentsApp() {
+    val viewModel: MainViewModel = viewModel()
     val backStack = remember { mutableStateListOf<Screen>() }
     var screen by remember { mutableStateOf(Screen.Login) }
 
@@ -156,25 +162,25 @@ fun OttoScentsApp() {
                             .fillMaxWidth()
                     ) {
                         when (screen) {
-                            Screen.Home -> HomeScreen(::navigate)
-                            Screen.Inventory -> InventoryScreen(::navigate)
+                            Screen.Home -> HomeScreen(viewModel, ::navigate)
+                            Screen.Inventory -> InventoryScreen(viewModel, ::navigate)
                             Screen.ProductDetail -> ProductDetailScreen(::navigate, ::back)
                             Screen.ProductForm -> ProductFormScreen(isEdit = backStack.lastOrNull() == Screen.ProductDetail, navigate = ::navigate, back = ::back)
                             Screen.Shelf -> ShelfScreen(::navigate)
                             Screen.ShelfAreaDetail -> ShelfAreaDetailScreen(::back)
                             Screen.Temperature -> TemperatureMonitorScreen(::navigate, ::back)
                             Screen.Schedule -> ScheduleScreen(::back)
-                            Screen.Alerts -> AlertsScreen(::navigate)
-                            Screen.Settings -> SettingsScreen(::navigate, onLogout = { replace(Screen.Login) })
+                            Screen.Alerts -> AlertsScreen(viewModel, ::navigate)
+                            Screen.Settings -> SettingsScreen(viewModel, ::navigate, onLogout = { viewModel.logout(); replace(Screen.Login) })
                             Screen.Reports -> ReportsScreen(::back)
                             Screen.ShelfHistory -> ShelfCheckHistoryScreen(::back)
                             Screen.CloudBackup -> CloudBackupCheckScreen(::navigate, ::back)
-                            Screen.StockLogs -> StockMovementLogsScreen(::navigate, ::back)
-                            Screen.Restock -> RestockManagementScreen(::navigate, ::back)
+                            Screen.StockLogs -> StockMovementLogsScreen(viewModel, ::navigate, ::back)
+                            Screen.Restock -> RestockManagementScreen(viewModel, ::navigate, ::back)
                             Screen.CreateRestock -> CreateRestockRequestScreen(::back)
                             Screen.ReceivingVerification -> ReceivingVerificationScreen(::navigate, ::back)
-                            Screen.FanLogs -> FanActivityLogsScreen(::back)
-                            Screen.SystemLogs -> SystemActivityLogsScreen(::back)
+                            Screen.FanLogs -> FanActivityLogsScreen(viewModel, ::back)
+                            Screen.SystemLogs -> SystemActivityLogsScreen(viewModel, ::back)
                             Screen.Help -> HelpGuideScreen(::back)
                             Screen.Login -> Unit
                         }
@@ -403,7 +409,6 @@ private fun FormField(label: String, value: String, placeholder: String = "", nu
 private fun LoginScreen(onLogin: () -> Unit) {
     var email by remember { mutableStateOf("admin@ottoscents.com") }
     var password by remember { mutableStateOf("password123") }
-    var branch by remember { mutableStateOf("San Pablo Branch") }
 
     Column(
         modifier = Modifier
@@ -420,7 +425,6 @@ private fun LoginScreen(onLogin: () -> Unit) {
             }
             OutlinedTextField(value = email, onValueChange = { email = it }, placeholder = { Text("Email address") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
             OutlinedTextField(value = password, onValueChange = { password = it }, placeholder = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
-            OutlinedTextField(value = branch, onValueChange = { branch = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
             Text("Forgot password?", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End, fontSize = 14.sp, color = Muted, fontWeight = FontWeight.Medium)
             AppButton("Sign In", onClick = onLogin)
         }
@@ -429,13 +433,14 @@ private fun LoginScreen(onLogin: () -> Unit) {
 }
 
 @Composable
-private fun HomeScreen(navigate: (Screen) -> Unit) {
+private fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
+    val branch by viewModel.userBranch.collectAsState()
     ScrollScreen(
         topBar = {
             TopBar(
                 title = "Dashboard",
                 right = {
-                    Text("San Pablo", modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(Color(0xFFF3F4F6)).padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(branch ?: "Unknown", modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(Color(0xFFF3F4F6)).padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
             )
         }
@@ -505,16 +510,10 @@ private fun ActionCard(icon: String, label: String, modifier: Modifier = Modifie
     }
 }
 
-private data class InventoryItem(val id: Int, val name: String, val category: String, val shelf: String, val recorded: Int, val detected: Int, val status: String, val lastUpdated: String)
-private val inventoryItems = listOf(
-    InventoryItem(1, "Midnight Oud", "Woody", "Area A1", 12, 12, "normal", "10m ago"),
-    InventoryItem(2, "Vanilla Cloud", "Sweet", "Area B2", 8, 7, "missing", "10m ago"),
-    InventoryItem(3, "Ocean Breeze", "Fresh", "Area C1", 4, 4, "low", "1h ago"),
-    InventoryItem(4, "Rose Petal", "Floral", "Area A2", 15, -1, "review", "10m ago")
-)
 
 @Composable
-private fun InventoryScreen(navigate: (Screen) -> Unit) {
+private fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
+    val inventoryItems by viewModel.inventoryList.collectAsState()
     ScrollScreen(
         topBar = { TopBar("Inventory", right = { AppButton("+", modifier = Modifier.width(44.dp).height(44.dp), onClick = { navigate(Screen.ProductForm) }) }) }
     ) {
@@ -841,15 +840,10 @@ private fun TabPill(label: String, active: Boolean, modifier: Modifier = Modifie
     }
 }
 
-private data class AlertItem(val title: String, val desc: String, val branch: String, val time: String, val type: String)
 
 @Composable
-private fun AlertsScreen(navigate: (Screen) -> Unit) {
-    val alerts = listOf(
-        AlertItem("Missing Bottle", "Area B2 (Vanilla Cloud) missing since 10:00 AM.", "San Pablo", "10m ago", "critical"),
-        AlertItem("Low Stock", "Ocean Breeze has fallen below minimum threshold (4 left).", "San Pablo", "1h ago", "warning"),
-        AlertItem("Cloud Backup Checked", "Local check failed due to poor lighting. Cloud processed result.", "Lipa", "2h ago", "cloud")
-    )
+private fun AlertsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
+    val alerts by viewModel.alertsList.collectAsState()
     ScrollScreen(topBar = { TopBar("Alerts") }) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Notifications", fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text("Mark all read", fontSize = 12.sp, color = Muted, fontWeight = FontWeight.Medium) }
         alerts.forEach { alert ->
@@ -894,20 +888,28 @@ private fun ReportsScreen(back: () -> Unit) {
 }
 
 @Composable
-private fun SettingsScreen(navigate: (Screen) -> Unit, onLogout: () -> Unit) {
+private fun SettingsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onLogout: () -> Unit) {
     ScrollScreen(topBar = { TopBar("Settings") }) {
         AppCard(background = Color(0xFF111827), border = Color.Transparent) {
-            Text("Maria Santos", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("Branch Staff • San Pablo", color = Color(0xFFD1D5DB), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-            Text("maria@ottoscents.com", color = Color(0xFF9CA3AF), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            val userRole by viewModel.userRole.collectAsState()
+            val userBranch by viewModel.userBranch.collectAsState()
+            val email = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "Unknown User"
+            Text(email, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("${userRole?.uppercase() ?: "STAFF"} • ${userBranch ?: "Unknown"}", color = Color(0xFFD1D5DB), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
         }
+        val role by viewModel.userRole.collectAsState()
         SettingSection("System") {
-            SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }
-            SettingRow("Temperature Threshold", "25°C") { navigate(Screen.Temperature) }
-            SettingRow("Low Stock Threshold", "5 bottles") {}
+            SettingRow("Seed Database", "Click to populate perfumes") { viewModel.seedDatabase() }
+            if (role == "admin") {
+                SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }
+                SettingRow("Temperature Threshold", "25°C") { navigate(Screen.Temperature) }
+                SettingRow("Low Stock Threshold", "5 bottles") {}
+            }
             SettingRow("Cloud Sync Status", "Connected") {}
         }
-        SettingSection("Reports") { SettingRow("Reports", null) { navigate(Screen.Reports) }; SettingRow("System Activity Logs", null) { navigate(Screen.SystemLogs) } }
+        if (role == "admin") {
+            SettingSection("Reports") { SettingRow("Reports", null) { navigate(Screen.Reports) }; SettingRow("System Activity Logs", null) { navigate(Screen.SystemLogs) } }
+        }
         SettingSection("Help & Guides") { SettingRow("Help & Guides", null) { navigate(Screen.Help) } }
         AppButton("Logout", variant = ButtonVariant.Outline, onClick = onLogout)
     }
@@ -929,7 +931,6 @@ private fun SettingRow(title: String, value: String?, onClick: () -> Unit) {
     }
 }
 
-private data class HistoryItem(val date: String, val time: String, val branch: String, val status: String)
 @Composable
 private fun ShelfCheckHistoryScreen(back: () -> Unit) {
     val items = listOf(
@@ -972,12 +973,9 @@ private fun CloudBackupCheckScreen(navigate: (Screen) -> Unit, back: () -> Unit)
     }
 }
 
-private data class MovementLog(val productName: String, val shelfArea: String, val branch: String, val timestamp: String, val status: String, val quantity: Int)
 @Composable
-private fun StockMovementLogsScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
-    val logs = listOf(
-        MovementLog("Midnight Oud", "Area A1", "San Pablo", "May 1, 2026 • 2:30 PM", "restocked", 1), MovementLog("Ocean Breeze", "Area B3", "San Pablo", "May 1, 2026 • 1:15 PM", "missing", 3), MovementLog("Vanilla Cloud", "Area B2", "Lipa", "May 1, 2026 • 11:45 AM", "needs_review", 2), MovementLog("Midnight Oud", "Area A1", "San Pablo", "May 1, 2026 • 10:30 AM", "verified", 1), MovementLog("Ocean Breeze", "Area B3", "San Pablo", "May 1, 2026 • 9:00 AM", "present", 3), MovementLog("Vanilla Cloud", "Area B2", "Lipa", "Apr 30, 2026 • 6:45 PM", "returned", 2)
-    )
+private fun StockMovementLogsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, back: () -> Unit) {
+    val logs by viewModel.movementLogs.collectAsState()
     ScrollScreen(background = AppBg, topBar = { TopBar("Stock Movement Logs", showBack = true, onBack = back) }) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Movements".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp); StatusChip("Filter", ChipVariant.Outline, small = true) }
         logs.forEach { log -> MovementLogCard(log) { navigate(Screen.ProductDetail) } }
@@ -998,13 +996,10 @@ private fun MovementLogCard(log: MovementLog, onClick: () -> Unit) {
     }
 }
 
-private data class RestockItem(val productName: String, val productId: String, val quantity: Int, val fromBranch: String, val toBranch: String, val requestedBy: String, val requestedDate: String, val status: String, val estimatedArrival: String? = null, val completedDate: String? = null)
 @Composable
-private fun RestockManagementScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
+private fun RestockManagementScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, back: () -> Unit) {
     var tab by remember { mutableStateOf("requests") }
-    val data = listOf(
-        RestockItem("Ocean Breeze", "3", 15, "Lipa", "San Pablo", "Maria Santos", "May 1, 2026", "pending"), RestockItem("Midnight Oud", "1", 10, "Lipa", "San Pablo", "Juan Dela Cruz", "Apr 30, 2026", "in_transit", "May 2, 2026"), RestockItem("Vanilla Cloud", "2", 8, "San Pablo", "Lipa", "Ana Reyes", "Apr 30, 2026", "received"), RestockItem("Ocean Breeze", "3", 12, "Lipa", "San Pablo", "Maria Santos", "Apr 28, 2026", "completed", completedDate = "Apr 29, 2026"), RestockItem("Midnight Oud", "1", 20, "San Pablo", "Lipa", "Carlos Garcia", "Apr 27, 2026", "completed", completedDate = "Apr 28, 2026")
-    )
+    val data by viewModel.restockRequests.collectAsState()
     val filtered = data.filter { when (tab) { "requests" -> it.status == "pending"; "transfers" -> it.status == "in_transit"; "received" -> it.status == "received"; else -> it.status == "completed" } }
     ScrollScreen(background = AppBg, topBar = { TopBar("Restock Management", showBack = true, onBack = back, right = { StatusChip("New Request", ChipVariant.Black, small = true, modifier = Modifier.clickable { navigate(Screen.CreateRestock) }) }) }) {
         Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(CardBg).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(18.dp)).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1073,10 +1068,9 @@ private fun ReceivingVerificationScreen(navigate: (Screen) -> Unit, back: () -> 
     }
 }
 
-private data class FanActivity(val triggerTemperature: Double, val startTime: String, val stopTime: String?, val duration: String, val status: String, val branch: String, val shelfArea: String)
 @Composable
-private fun FanActivityLogsScreen(back: () -> Unit) {
-    val logs = listOf(FanActivity(26.8, "May 1, 2026 • 2:45 PM", "May 1, 2026 • 3:15 PM", "30 mins", "stopped", "San Pablo", "Area A1"), FanActivity(27.2, "May 1, 2026 • 11:20 AM", "May 1, 2026 • 11:45 AM", "25 mins", "stopped", "San Pablo", "Area B3"), FanActivity(25.4, "Apr 30, 2026 • 4:30 PM", "Apr 30, 2026 • 4:32 PM", "2 mins", "manual_stop", "Lipa", "Area A1"), FanActivity(26.1, "Apr 29, 2026 • 10:15 AM", null, "active", "active", "Lipa", "Area C1"))
+private fun FanActivityLogsScreen(viewModel: MainViewModel, back: () -> Unit) {
+    val logs by viewModel.fanLogs.collectAsState()
     ScrollScreen(background = AppBg, topBar = { TopBar("Fan Activity Logs", showBack = true, onBack = back) }) {
         AppCard(background = CardBg) { Text("Cooling system activity records", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 14.sp, color = Muted); Text("Fan activates when temperature exceeds 25°C", modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted) }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Activity".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp); StatusChip("Filter", ChipVariant.Outline, small = true) }
@@ -1096,7 +1090,6 @@ private fun FanActivityCard(log: FanActivity) {
     }
 }
 
-private data class HelpTopic(val id: String, val title: String, val description: String, val paragraphs: List<String>)
 @Composable
 private fun HelpGuideScreen(back: () -> Unit) {
     var expanded by remember { mutableStateOf("needs_review") }
@@ -1129,12 +1122,9 @@ private fun HelpTopicCard(topic: HelpTopic, expanded: Boolean, onClick: () -> Un
     }
 }
 
-private data class SystemActivity(val type: String, val description: String, val user: String?, val branch: String, val timestamp: String)
 @Composable
-private fun SystemActivityLogsScreen(back: () -> Unit) {
-    val activities = listOf(
-        SystemActivity("sync_event", "Cloud synchronization completed", null, "San Pablo", "May 1, 2026 • 3:45 PM"), SystemActivity("shelf_check", "Automated shelf check completed for Area A1", null, "San Pablo", "May 1, 2026 • 3:30 PM"), SystemActivity("fan_activation", "Cooling fan activated due to high temperature (26.8°C)", null, "San Pablo", "May 1, 2026 • 2:45 PM"), SystemActivity("inventory_update", "Restock completed: Ocean Breeze (+15 bottles)", "Maria Santos", "San Pablo", "May 1, 2026 • 2:30 PM"), SystemActivity("cloud_backup", "Cloud backup check triggered for unclear local result", null, "Lipa", "May 1, 2026 • 1:15 PM"), SystemActivity("temperature_alert", "Temperature exceeded safe range (27.2°C)", null, "Lipa", "May 1, 2026 • 12:00 PM"), SystemActivity("product_update", "Product details updated: Midnight Oud", "Juan Dela Cruz", "San Pablo", "May 1, 2026 • 10:15 AM"), SystemActivity("user_login", "User logged in", "Maria Santos", "San Pablo", "May 1, 2026 • 8:30 AM"), SystemActivity("schedule_change", "Shelf check schedule updated to every 2 hours", "Admin", "San Pablo", "Apr 30, 2026 • 6:00 PM"), SystemActivity("shelf_check", "Manual shelf check initiated for Area B3", "Ana Reyes", "San Pablo", "Apr 30, 2026 • 4:30 PM")
-    )
+private fun SystemActivityLogsScreen(viewModel: MainViewModel, back: () -> Unit) {
+    val activities by viewModel.systemLogs.collectAsState()
     ScrollScreen(background = AppBg, topBar = { TopBar("System Activity Logs", showBack = true, onBack = back) }) {
         AppCard(background = CardBg) { Text("System events and user actions", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 14.sp, color = Muted); Text("Track all important activities across branches", modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted) }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Activity".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp); StatusChip("Filter", ChipVariant.Outline, small = true) }
