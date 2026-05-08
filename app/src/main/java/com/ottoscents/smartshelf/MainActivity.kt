@@ -899,7 +899,6 @@ private fun SettingsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit,
         }
         val role by viewModel.userRole.collectAsState()
         SettingSection("System") {
-            SettingRow("Seed Database", "Click to populate perfumes") { viewModel.seedDatabase() }
             if (role == "admin") {
                 SettingRow("Capture Schedule", "Every hour") { navigate(Screen.Schedule) }
                 SettingRow("Temperature Threshold", "25°C") { navigate(Screen.Temperature) }

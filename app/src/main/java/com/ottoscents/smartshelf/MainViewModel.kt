@@ -105,57 +105,5 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun seedDatabase() {
-        viewModelScope.launch {
-            val perfumes = listOf(
-                "A" to "BVLGARI EXTREME",
-                "B" to "BVLGARI AQUA",
-                "C" to "CLINIQUE HAPPY MEN",
-                "D" to "CHRISTIAN DIOR SAUVAGE",
-                "E" to "RALPH LAUREN POLO BLACK",
-                "F" to "DAVIDOFF COOL WATER",
-                "G" to "RALPH LAUREN POLO RED",
-                "H" to "LACOSTE BLACK",
-                "I" to "HUGO BOSS",
-                "J" to "LACOSTE ESSENTIAL",
-                "K" to "LACOSTE RED",
-                "L" to "LACOSTE WHITE",
-                "M" to "PACO RABANNE INVICTUS",
-                "N" to "RALPH LAUREN POLO SPORT",
-                "O" to "TOMMY BOY",
-                "P" to "CHANEL CHANCE",
-                "Q" to "CHANEL NO.5",
-                "R" to "CLINIQUE HAPPY WOMEN",
-                "S" to "ESCADA MOON SPARKLE",
-                "T" to "DKNY BE DELICIOUS",
-                "U" to "D&G LIGHT BLUE WOMEN",
-                "V" to "ELIZABETH ARDEN GREEN TEA",
-                "W" to "CHANEL COCO",
-                "X" to "ESTEE LAUDER PLEASURES",
-                "Y" to "FERRAGAMO INCANTO",
-                "Z" to "JO MALONE MIMOSA & CARDAMOM",
-                "AA" to "RALPH LAUREN ROMANCE",
-                "AB" to "LANCOME LA VIE EST BELLE",
-                "AC" to "LANVIN ECLAT D'ARPEGE",
-                "AD" to "TOMMY GIRL"
-            )
 
-            perfumes.forEach { (code, name) ->
-                val isMen = code.length == 1 && code[0] <= 'O'
-                val category = if (isMen) "Men's Fragrance" else "Women's Fragrance"
-                val item = InventoryItem(
-                    id = code,
-                    perfumeCode = code,
-                    name = name,
-                    category = category,
-                    shelf = "Unassigned",
-                    recorded = 0,
-                    detected = 0,
-                    status = "normal",
-                    lastUpdated = "Just now"
-                )
-                firestoreRepo.saveInventoryItem(item)
-            }
-        }
-    }
 }
