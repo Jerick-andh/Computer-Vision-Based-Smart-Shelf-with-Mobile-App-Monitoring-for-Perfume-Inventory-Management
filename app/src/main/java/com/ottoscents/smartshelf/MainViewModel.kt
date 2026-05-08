@@ -21,6 +21,18 @@ class MainViewModel : ViewModel() {
     private val firestoreRepo = FirestoreRepository()
     private val authRepo = AuthRepository()
 
+    init {
+        authRepo.currentUser?.uid?.let { uid ->
+            viewModelScope.launch {
+                val details = firestoreRepo.getUserDetails(uid)
+                if (details != null) {
+                    _userRole.value = details.role
+                    _userBranch.value = details.branch
+                }
+            }
+        }
+    }
+
     private val _isLoggedIn = MutableStateFlow(authRepo.currentUser != null)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 

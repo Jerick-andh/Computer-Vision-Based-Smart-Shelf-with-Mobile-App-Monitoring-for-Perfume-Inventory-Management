@@ -25,7 +25,6 @@
         android:extractNativeLibs="false"
         android:label="Otto Scents"
         android:supportsRtl="true"
-        android:testOnly="true"
         android:theme="@style/Theme.OttoScents" >
         <activity
             android:name="com.ottoscents.smartshelf.MainActivity"
