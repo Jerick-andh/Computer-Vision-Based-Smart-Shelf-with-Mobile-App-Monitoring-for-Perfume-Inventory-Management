@@ -351,8 +351,9 @@ int style TextAppearance_Compat_Notification_Time 0x7f0a0006
 int style TextAppearance_Compat_Notification_Title 0x7f0a0007
 int style Theme_Hidden 0x7f0a0008
 int style Theme_OttoScents 0x7f0a0009
-int style Widget_Compat_NotificationActionContainer 0x7f0a000a
-int style Widget_Compat_NotificationActionText 0x7f0a000b
+int style Theme_PlayCore_Transparent 0x7f0a000a
+int style Widget_Compat_NotificationActionContainer 0x7f0a000b
+int style Widget_Compat_NotificationActionText 0x7f0a000c
 int[] styleable Capability { 0x7f010013, 0x7f010015 }
 int styleable Capability_queryPatterns 0
 int styleable Capability_shortcutMatchRequired 1

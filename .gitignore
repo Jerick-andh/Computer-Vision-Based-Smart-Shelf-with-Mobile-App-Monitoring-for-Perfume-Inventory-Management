@@ -41,7 +41,7 @@ __pycache__/
 # gradlew.bat
 
 # Google Services
-# google-services.json
+google-services.json
 
 # Private keys
 *.keystore

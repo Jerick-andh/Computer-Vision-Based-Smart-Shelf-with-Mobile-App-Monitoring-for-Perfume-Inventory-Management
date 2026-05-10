@@ -352,6 +352,7 @@ style TextAppearance_Compat_Notification_Time
 style TextAppearance_Compat_Notification_Title
 style Theme_Hidden
 style Theme_OttoScents
+style Theme_PlayCore_Transparent
 style Widget_Compat_NotificationActionContainer
 style Widget_Compat_NotificationActionText
 styleable Capability queryPatterns shortcutMatchRequired

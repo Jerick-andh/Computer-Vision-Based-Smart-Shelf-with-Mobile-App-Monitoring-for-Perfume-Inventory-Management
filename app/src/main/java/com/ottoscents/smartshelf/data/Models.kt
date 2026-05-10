@@ -73,7 +73,8 @@ data class SystemActivity(
     val description: String = "",
     val user: String? = null,
     val branch: String = "",
-    val timestamp: String = ""
+    val timestamp: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class HelpTopic(

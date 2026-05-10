@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.ottoscents.smartshelf.app-mergeDebugResources-53:/values-watch-v20/values-watch-v20.xml",
+            "outputFile": "com.ottoscents.smartshelf.app-mergeDebugResources-58:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\neale\\.gradle\\caches\\9.0.0\\transforms\\26bfce2e41d6e732e2885685eb4099bc\\transformed\\play-services-auth-20.7.0\\res\\values-watch-v20\\values.xml",
+                    "source": "C:\\Users\\neale\\.gradle\\caches\\9.4.1\\transforms\\5b48aaf84d07e2f76d1917f30eacd25a\\transformed\\play-services-auth-20.7.0\\res\\values-watch-v20\\values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11",
                         "startColumns": "0,0,0,0,0,0,0,0",
