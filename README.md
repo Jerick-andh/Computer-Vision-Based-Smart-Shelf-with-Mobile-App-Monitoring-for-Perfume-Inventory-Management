@@ -14,6 +14,14 @@ Native Android Kotlin/Jetpack Compose conversion of the uploaded React/TypeScrip
 ## Main file
 `app/src/main/java/com/ottoscents/smartshelf/MainActivity.kt`
 
+Admin:
+Email: admin@ottoscents.com
+Password: password123
+
+Staff:
+Email: staff@ottoscents.com
+Password: password123
+
 ## Included screens
 - Login
 - Dashboard
@@ -37,4 +45,3 @@ Native Android Kotlin/Jetpack Compose conversion of the uploaded React/TypeScrip
 - System Activity Logs
 - Help & Guide
 
-This is a front-end prototype with static mock data, matching the original wireframe flow.
