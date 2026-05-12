@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ottoscents.smartshelf"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -46,6 +46,9 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-base")
+    
+    // ONNX Runtime for YOLO
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.26.0")
     
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")

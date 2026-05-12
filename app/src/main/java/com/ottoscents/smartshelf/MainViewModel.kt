@@ -18,7 +18,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.flatMapLatest
+import com.ottoscents.smartshelf.vision.OnnxDetectorHelper
+import com.ottoscents.smartshelf.vision.DetectionResult
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.content.Context
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class MainViewModel : ViewModel() {
@@ -71,6 +79,9 @@ class MainViewModel : ViewModel() {
 
     private val _lowStockThreshold = MutableStateFlow(5)
     val lowStockThreshold: StateFlow<Int> = _lowStockThreshold.asStateFlow()
+
+    private val _detections = MutableStateFlow<List<DetectionResult>>(emptyList())
+    val detections: StateFlow<List<DetectionResult>> = _detections.asStateFlow()
 
     private val _selectedInventoryBranch = MutableStateFlow("All Branches")
     val selectedInventoryBranch: StateFlow<String> = _selectedInventoryBranch.asStateFlow()
@@ -271,6 +282,62 @@ class MainViewModel : ViewModel() {
     }
 
     fun runInventoryCheck() {
+        // This is the old simulated check
+        simulateInventoryCheck()
+    }
+
+    fun runYoloCheck(context: Context, assetName: String) {
+        viewModelScope.launch {
+            _handshakeStatus.value = "PROCESSING_IMAGE..."
+            
+            val detections = withContext(Dispatchers.IO) {
+                try {
+                    val inputStream = context.assets.open(assetName)
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    val detector = OnnxDetectorHelper(context)
+                    val results = detector.detect(bitmap)
+                    detector.close()
+                    results
+                } catch (e: Exception) {
+                    emptyList<DetectionResult>()
+                }
+            }
+            
+            _detections.value = detections
+            _handshakeStatus.value = "DETECTION_COMPLETE"
+            
+            // Update inventory based on bottle count
+            val bottleCount = detections.size 
+            updateInventoryFromDetections(bottleCount)
+        }
+    }
+
+    private fun updateInventoryFromDetections(count: Int) {
+        viewModelScope.launch {
+            val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
+            val currentBranch = _userBranch.value ?: "Lipa"
+            
+            val updates = inventoryList.value.filter { it.branch == currentBranch }.map { item ->
+                // For demonstration, we'll just update one item or distribute the count
+                item.copy(
+                    detected = if (item.name == "Rose Petal") count else item.detected,
+                    status = if (count <= _lowStockThreshold.value) "low" else "normal",
+                    lastUpdated = now
+                )
+            }
+            
+            firestoreRepo.processBulkInventoryUpdate(updates, SystemActivity(
+                type = "shelf_check",
+                description = "YOLO Detection completed. $count items found.",
+                user = authRepo.currentUser?.email ?: "System",
+                branch = currentBranch,
+                timestamp = now,
+                createdAt = System.currentTimeMillis()
+            ))
+        }
+    }
+
+    private fun simulateInventoryCheck() {
         viewModelScope.launch {
             val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
             val dateOnly = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date())
