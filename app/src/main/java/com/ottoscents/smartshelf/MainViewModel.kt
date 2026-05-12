@@ -9,14 +9,18 @@ import com.ottoscents.smartshelf.data.InventoryItem
 import com.ottoscents.smartshelf.data.MovementLog
 import com.ottoscents.smartshelf.data.RestockItem
 import com.ottoscents.smartshelf.data.SystemActivity
+import com.ottoscents.smartshelf.data.UserRole
 import com.ottoscents.smartshelf.data.FanActivity
+import com.ottoscents.smartshelf.data.SystemSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class MainViewModel : ViewModel() {
     private val firestoreRepo = FirestoreRepository()
     private val authRepo = AuthRepository()
@@ -29,9 +33,17 @@ class MainViewModel : ViewModel() {
                     _userRole.value = details.role
                     _userBranch.value = details.branch
                 }
+                
+                // Load global settings
+                val settings = firestoreRepo.getSystemSettings()
+                if (settings != null) {
+                    _captureSchedule.value = settings.captureSchedule
+                    _lowStockThreshold.value = settings.lowStockThreshold
+                }
             }
         }
     }
+
 
     private val _isLoggedIn = MutableStateFlow(authRepo.currentUser != null)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
@@ -54,6 +66,45 @@ class MainViewModel : ViewModel() {
     private val _isFanActive = MutableStateFlow(false)
     val isFanActive: StateFlow<Boolean> = _isFanActive.asStateFlow()
 
+    private val _captureSchedule = MutableStateFlow("Manual Only")
+    val captureSchedule: StateFlow<String> = _captureSchedule.asStateFlow()
+
+    private val _lowStockThreshold = MutableStateFlow(5)
+    val lowStockThreshold: StateFlow<Int> = _lowStockThreshold.asStateFlow()
+
+    private val _selectedInventoryBranch = MutableStateFlow("All Branches")
+    val selectedInventoryBranch: StateFlow<String> = _selectedInventoryBranch.asStateFlow()
+
+    fun setInventoryBranch(branch: String) {
+        _selectedInventoryBranch.value = branch
+    }
+
+    fun setCaptureSchedule(schedule: String) {
+        _captureSchedule.value = schedule
+        logActivity("schedule_change", "Capture schedule updated to: $schedule")
+        
+        // Persist to database
+        viewModelScope.launch {
+            firestoreRepo.saveSystemSettings(SystemSettings(
+                captureSchedule = schedule,
+                lowStockThreshold = _lowStockThreshold.value
+            ))
+        }
+    }
+
+    fun setLowStockThreshold(threshold: Int) {
+        _lowStockThreshold.value = threshold
+        logActivity("system_update", "Low stock threshold updated to: $threshold bottles")
+        
+        // Persist to database
+        viewModelScope.launch {
+            firestoreRepo.saveSystemSettings(SystemSettings(
+                captureSchedule = _captureSchedule.value,
+                lowStockThreshold = threshold
+            ))
+        }
+    }
+
     val inventoryList: StateFlow<List<InventoryItem>> = firestoreRepo.getInventoryStream()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -67,9 +118,14 @@ class MainViewModel : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val systemLogs: StateFlow<List<SystemActivity>> = firestoreRepo.getSystemLogsStream()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyIn(emptyList()))
 
-    val fanLogs: StateFlow<List<FanActivity>> = firestoreRepo.getFanLogsStream()
+    private fun <T> emptyIn(value: T): T = value
+
+    val fanLogs: StateFlow<List<FanActivity>> = _userBranch
+        .flatMapLatest { branch ->
+            firestoreRepo.getFanLogsStream(branch ?: "Lipa")
+        }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun login(email: String, pass: String) {
@@ -77,17 +133,57 @@ class MainViewModel : ViewModel() {
             _loginError.value = null
             val success = authRepo.login(email, pass)
             if (success) {
-                authRepo.currentUser?.uid?.let { uid ->
-                    val details = firestoreRepo.getUserDetails(uid)
+                authRepo.currentUser?.let { user ->
+                    val details = firestoreRepo.getUserDetails(user.uid)
                     if (details != null) {
                         _userRole.value = details.role
                         _userBranch.value = details.branch
+                    } else {
+                        // If no details exist, create a deterministic user entry
+                        val isFirstAdmin = user.email?.equals("admin@ottoscents.com", ignoreCase = true) == true
+                        val newUser = UserRole(
+                            id = user.uid,
+                            email = user.email ?: "",
+                            role = if (isFirstAdmin) "admin" else "staff",
+                            // Admin is always San Pablo, Staff always defaults to Lipa
+                            branch = if (isFirstAdmin) "San Pablo" else "Lipa"
+                        )
+                        firestoreRepo.saveUserDetails(newUser)
+                        _userRole.value = newUser.role
+                        _userBranch.value = newUser.branch
                     }
                 }
                 _isLoggedIn.value = true
                 logActivity("user_login", "User logged in successfully.")
             } else {
                 _loginError.value = "Login failed. Please check credentials."
+            }
+        }
+    }
+
+    fun register(email: String, pass: String) {
+        viewModelScope.launch {
+            _loginError.value = null
+            val success = authRepo.register(email, pass)
+            if (success) {
+                authRepo.currentUser?.let { user ->
+                    // Automatically provision deterministic profile on registration
+                    val isFirstAdmin = user.email?.equals("admin@ottoscents.com", ignoreCase = true) == true
+                    val newUser = UserRole(
+                        id = user.uid,
+                        email = user.email ?: "",
+                        role = if (isFirstAdmin) "admin" else "staff",
+                        // Admin is always San Pablo, Staff defaults to Lipa
+                        branch = if (isFirstAdmin) "San Pablo" else "Lipa"
+                    )
+                    firestoreRepo.saveUserDetails(newUser)
+                    _userRole.value = newUser.role
+                    _userBranch.value = newUser.branch
+                }
+                _isLoggedIn.value = true
+                logActivity("user_register", "New user registered.")
+            } else {
+                _loginError.value = "Registration failed. Email might be in use or password too weak."
             }
         }
     }
@@ -100,41 +196,33 @@ class MainViewModel : ViewModel() {
 
     fun saveInventoryItem(item: InventoryItem) {
         viewModelScope.launch {
-            firestoreRepo.saveInventoryItem(item)
-            logActivity("product_update", "Inventory item '${item.name}' saved/updated.")
+            if (item.branch == "Both Branches") {
+                // Sync across both branches by using perfumeCode as deterministic ID
+                firestoreRepo.saveInventoryItem(item.copy(branch = "Lipa"))
+                firestoreRepo.saveInventoryItem(item.copy(branch = "San Pablo"))
+                logActivity("product_update", "Product '${item.name}' synced across BOTH branches.")
+            } else {
+                firestoreRepo.saveInventoryItem(item)
+                logActivity("product_update", "Inventory item '${item.name}' saved/updated for ${item.branch}.")
+            }
         }
     }
 
-    fun deleteInventoryItem(itemId: String) {
+    fun deleteInventoryItem(item: InventoryItem) {
         viewModelScope.launch {
-            firestoreRepo.deleteInventoryItem(itemId)
-            logActivity("product_update", "Inventory item deleted (ID: $itemId).")
+            // Remove the product from all branches since they share perfumes
+            val matches = inventoryList.value.filter { it.name == item.name || (it.perfumeCode == item.perfumeCode && item.perfumeCode != "#") }
+            matches.forEach { firestoreRepo.deleteInventoryItem(it) }
+            logActivity("product_update", "Product '${item.name}' removed from all branches.")
         }
     }
 
-    fun saveRestockRequest(item: RestockItem) {
-        viewModelScope.launch {
-            firestoreRepo.saveRestockRequest(item)
-            logActivity("restock_event", "Restock request for '${item.productName}' created.")
-        }
-    }
-
-    /**
-     * MOCKUP HANDSHAKE: Demonstrates Architectural Readiness for Camera Hardware Integration
-     * Following 4-step Universal Implementation:
-     */
     fun triggerShelfCameraHandshake() {
         viewModelScope.launch {
-            // 1. Isolate Logic Path: Start connection attempt
             _handshakeStatus.value = "CONNECTING..."
-            kotlinx.coroutines.delay(1500) // Simulate network/hardware latency
-
-            // 3. Simulate Response: Mock data from an external camera sensor
+            kotlinx.coroutines.delay(1500)
             val mockExternalSignal = "CAMERA_DATA_v1.0" 
-
-            // 2. Gatekeeper Validation: Verify the "external" signal
             if (mockExternalSignal.startsWith("CAMERA_DATA")) {
-                // 4. Feedback Loop: Send success back to UI
                 _handshakeStatus.value = "CONNECTION_VERIFIED_200_OK"
             } else {
                 _handshakeStatus.value = "ERROR_UNAUTHORIZED_DEVICE"
@@ -144,31 +232,29 @@ class MainViewModel : ViewModel() {
 
     fun simulateTemperatureSpike() {
         viewModelScope.launch {
+            val branch = _userBranch.value ?: "Lipa"
             val spikeTemp = 26.5f
             _currentTemperature.value = spikeTemp
             _isFanActive.value = true
             val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
 
-            // 1. Log Fan Activity in DB
             firestoreRepo.saveFanActivity(
                 FanActivity(
                     triggerTemperature = spikeTemp.toDouble(),
                     startTime = now,
                     status = "active",
-                    branch = _userBranch.value ?: "Unknown",
+                    branch = branch,
                     shelfArea = "Area A1"
                 )
             )
 
-            // 2. Log System Activity in DB
             logActivity("temperature_alert", "High temperature detected: ${spikeTemp}°C. Fan activated.")
 
-            // 3. Create active alert in DB
             firestoreRepo.saveAlert(
                 AlertItem(
                     title = "Critical Temperature",
                     desc = "Shelf temperature reached ${spikeTemp}°C. Fan auto-activated.",
-                    branch = _userBranch.value ?: "Unknown",
+                    branch = branch,
                     time = now,
                     type = "critical"
                 )
@@ -187,26 +273,78 @@ class MainViewModel : ViewModel() {
     fun runInventoryCheck() {
         viewModelScope.launch {
             val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
-            val updates = inventoryList.value.map { item ->
-                // Simulate detection: most of the time it's accurate, sometimes 1 missing
-                val simulatedDetected = if (Math.random() > 0.9) (item.recorded - 1).coerceAtLeast(0) else item.recorded
-                val newStatus = if (simulatedDetected < item.recorded) "needs_review" else "normal"
+            val dateOnly = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date())
+            
+            val pendingRequests = restockRequests.value.filter { it.status == "pending" || it.status == "in_transit" || it.status == "received" }
+            val currentBranch = _userBranch.value ?: "Lipa"
+
+            val updates = inventoryList.value.filter { it.branch == currentBranch }.map { item ->
+                // Simulate detection (for prototype purposes)
+                val simulatedDetected = if (Math.random() > 0.95) (item.recorded - 1).coerceAtLeast(0) else item.recorded
                 
+                var finalRecorded = item.recorded
+                var finalStatus = "normal"
+                
+                // 1. AUTOMATIC RESTOCK VERIFICATION:
+                val restock = pendingRequests.find { it.productName == item.name && it.toBranch == item.branch }
+                if (restock != null) {
+                    if (simulatedDetected > item.recorded) {
+                        finalRecorded = simulatedDetected
+                        firestoreRepo.saveRestockRequest(restock.copy(status = "completed", completedDate = now))
+                        logActivity("restock_auto_verify", "Restock for '${item.name}' at ${item.branch} verified.")
+                    }
+                }
+
+                // 2. LOW STOCK TRIGGER:
+                if (simulatedDetected <= _lowStockThreshold.value) {
+                    finalStatus = "low"
+                    val alreadyRequested = pendingRequests.any { it.productName == item.name && it.toBranch == item.branch }
+                    
+                    val alertTitle = "Low Stock: ${item.name}"
+                    val alreadyAlerted = alertsList.value.any { it.title == alertTitle && it.time.contains(dateOnly) }
+
+                    if (!alreadyAlerted) {
+                        firestoreRepo.saveAlert(AlertItem(
+                            title = alertTitle,
+                            desc = "${item.branch} branch: ${item.name} is running low ($simulatedDetected bottles remaining). Please restock soon.",
+                            branch = item.branch,
+                            time = now,
+                            type = "warning"
+                        ))
+                    }
+
+                    if (!alreadyRequested && item.branch != "San Pablo") {
+                        val quantityToRequest = 10 - simulatedDetected
+                        firestoreRepo.saveRestockRequest(RestockItem(
+                            productName = item.name,
+                            productId = item.id,
+                            quantity = quantityToRequest,
+                            fromBranch = "San Pablo",
+                            toBranch = item.branch,
+                            requestedBy = "System Auto-Trigger",
+                            requestedDate = dateOnly,
+                            status = "pending"
+                        ))
+                    }
+                } else if (simulatedDetected < finalRecorded) {
+                    finalStatus = "needs_review"
+                }
+
                 item.copy(
+                    recorded = finalRecorded,
                     detected = simulatedDetected,
-                    status = newStatus,
+                    status = finalStatus,
                     lastUpdated = now
                 )
             }
             
-            // Execute "Stored Procedure" logic in Repository
             firestoreRepo.processBulkInventoryUpdate(
                 updates = updates,
                 activity = SystemActivity(
                     type = "shelf_check",
-                    description = "Manual shelf inventory check completed via schedule window.",
-                    user = authRepo.currentUser?.email,
-                    branch = _userBranch.value ?: "Unknown",
+                    description = "Shelf inventory check completed. Automated verification and restock logic processed.",
+                    user = authRepo.currentUser?.email ?: "System",
+                    branch = currentBranch,
                     timestamp = now,
                     createdAt = System.currentTimeMillis()
                 )
@@ -221,7 +359,7 @@ class MainViewModel : ViewModel() {
                 SystemActivity(
                     type = type,
                     description = description,
-                    user = authRepo.currentUser?.email,
+                    user = authRepo.currentUser?.email ?: "System",
                     branch = _userBranch.value ?: "Unknown",
                     timestamp = now,
                     createdAt = System.currentTimeMillis()

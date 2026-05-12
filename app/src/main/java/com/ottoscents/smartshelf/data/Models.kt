@@ -8,6 +8,7 @@ data class InventoryItem(
     val perfumeCode: String = "",
     val name: String = "",
     val category: String = "",
+    val branch: String = "",
     val shelf: String = "",
     val recorded: Int = 0,
     val detected: Int = 0,
@@ -89,4 +90,10 @@ data class UserRole(
     val email: String = "",
     val role: String = "staff", // "admin" or "staff"
     val branch: String = ""
+)
+
+data class SystemSettings(
+    val captureSchedule: String = "Manual Only",
+    val lowStockThreshold: Int = 5,
+    val temperatureThreshold: Double = 25.0
 )

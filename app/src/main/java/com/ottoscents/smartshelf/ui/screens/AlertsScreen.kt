@@ -27,17 +27,41 @@ fun AlertsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
     ScrollScreen(topBar = { TopBar("Alerts") }) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Recent Notifications", fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text("Mark all read", fontSize = 12.sp, color = Muted, fontWeight = FontWeight.Medium) }
         alerts.forEach { alert ->
-            val variant = when (alert.type) { "critical" -> ChipVariant.Critical; "warning" -> ChipVariant.Warning; else -> ChipVariant.Normal }
+            val isRestock = alert.title.startsWith("Restock") || alert.title.startsWith("Low Stock")
+            val variant = when {
+                alert.type == "critical" -> ChipVariant.Critical
+                alert.type == "warning" -> ChipVariant.Warning
+                else -> ChipVariant.Normal
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Color.White).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(28.dp)).clickable { if (alert.type == "cloud") navigate(Screen.CloudBackup) else navigate(Screen.ProductDetail) }.padding(16.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (variant == ChipVariant.Critical) RedBg else if (variant == ChipVariant.Warning) OrangeBg else SoftGray), contentAlignment = Alignment.Center) { Text(if (alert.type == "cloud") "☁" else "!", color = if (variant == ChipVariant.Critical) Red else if (variant == ChipVariant.Warning) Orange else Muted) }
+                Box(
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(
+                        if (isRestock) Color(0xFFEFF6FF) 
+                        else if (variant == ChipVariant.Critical) RedBg 
+                        else if (variant == ChipVariant.Warning) OrangeBg 
+                        else SoftGray
+                    ), 
+                    contentAlignment = Alignment.Center
+                ) { 
+                    Text(
+                        text = if (alert.type == "cloud") "☁" else if (isRestock) "📦" else "!", 
+                        color = if (isRestock) Blue else if (variant == ChipVariant.Critical) Red else if (variant == ChipVariant.Warning) Orange else Muted
+                    ) 
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(alert.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text(alert.time, fontSize = 10.sp, color = LightMuted) }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { 
+                        Text(alert.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (isRestock) Blue else TextBlack)
+                        Text(alert.time, fontSize = 10.sp, color = LightMuted) 
+                    }
                     Text(alert.desc, fontSize = 12.sp, color = Muted, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) { StatusChip(alert.branch); StatusChip("View", ChipVariant.Black, small = true) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) { 
+                        StatusChip(alert.branch, variant = if (isRestock) ChipVariant.Black else ChipVariant.Outline)
+                        StatusChip("View Details", ChipVariant.Outline, small = true) 
+                    }
                 }
             }
         }

@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -124,7 +124,7 @@ fun StatusChip(text: String, variant: ChipVariant = ChipVariant.Normal, small: B
         ChipVariant.Normal -> Color(0xFFF3F4F6) to Muted
         ChipVariant.Missing, ChipVariant.Critical -> RedBg to Red
         ChipVariant.Review, ChipVariant.Warning -> OrangeBg to Orange
-        ChipVariant.Low -> Color(0xFFE5E7EB) to TextBlack
+        ChipVariant.Low -> YellowBg to Yellow
         ChipVariant.Returned, ChipVariant.Outline -> Color.White to Muted
         ChipVariant.Black -> Color.Black to Color.White
         ChipVariant.Green -> GreenBg to Green
@@ -212,6 +212,54 @@ fun FormField(label: String, value: String, placeholder: String = "", numeric: B
             textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End, fontSize = 14.sp, fontWeight = FontWeight.Medium),
             shape = RoundedCornerShape(14.dp)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FormDropdownField(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Muted, fontSize = 14.sp, modifier = Modifier.weight(0.9f))
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(1.3f)
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier.menuAnchor(),
+                textStyle = androidx.compose.ui.text.TextStyle(textAlign = TextAlign.End, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                shape = RoundedCornerShape(14.dp)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { selectionOption ->
+                    DropdownMenuItem(
+                        text = { Text(selectionOption) },
+                        onClick = {
+                            onSelect(selectionOption)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 

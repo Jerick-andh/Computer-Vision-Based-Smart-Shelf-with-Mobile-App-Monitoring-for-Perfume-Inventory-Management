@@ -29,6 +29,7 @@ import com.ottoscents.smartshelf.ui.components.*
 fun TemperatureMonitorScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, back: () -> Unit) {
     val currentTemp by viewModel.currentTemperature.collectAsState()
     val fanActive by viewModel.isFanActive.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
     val data = listOf(21f, 22f, 22.5f, 23f, 24.5f, 23.5f, currentTemp)
     val labels = listOf("08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "Now")
     
@@ -60,10 +61,12 @@ fun TemperatureMonitorScreen(viewModel: MainViewModel, navigate: (Screen) -> Uni
             }
         }
 
-        Text("Prototype Controls", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            AppButton("Trigger Spike", modifier = Modifier.weight(1f), onClick = { viewModel.simulateTemperatureSpike() })
-            AppButton("Reset", variant = ButtonVariant.Secondary, modifier = Modifier.weight(1f), onClick = { viewModel.resetCoolingSystem() })
+        if (userRole == "admin" || userRole == "staff") {
+            Text("Prototype Controls", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                AppButton("Trigger Spike", modifier = Modifier.weight(1f), onClick = { viewModel.simulateTemperatureSpike() })
+                AppButton("Reset", variant = ButtonVariant.Secondary, modifier = Modifier.weight(1f), onClick = { viewModel.resetCoolingSystem() })
+            }
         }
 
         Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SoftGray).border(1.dp, BorderGray.copy(alpha = 0.6f), RoundedCornerShape(18.dp)).clickable { navigate(Screen.FanLogs) }.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

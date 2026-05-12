@@ -26,13 +26,14 @@ class MainActivity : ComponentActivity() {
 enum class Screen {
     Login, Home, Inventory, ProductDetail, ProductForm, Shelf, ShelfAreaDetail, 
     Temperature, Schedule, Alerts, Settings, Reports, ShelfHistory, CloudBackup, 
-    StockLogs, Restock, CreateRestock, ReceivingVerification, FanLogs, SystemLogs, Help
+    StockLogs, FanLogs, SystemLogs, Help, Restock, CreateRestock, ReceivingVerification
 }
 
 @Composable
 fun OttoScentsApp() {
     val viewModel: MainViewModel = viewModel()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
     val backStack = remember { mutableStateListOf<Screen>() }
     var screen by remember { mutableStateOf(if (isLoggedIn) Screen.Home else Screen.Login) }
     var selectedItem by remember { mutableStateOf<InventoryItem?>(null) }
@@ -45,7 +46,16 @@ fun OttoScentsApp() {
         }
     }
 
-    fun navigate(target: Screen) { backStack.add(screen); screen = target }
+    fun navigate(target: Screen) { 
+        val adminOnly = listOf(
+            Screen.ProductForm, Screen.Reports, Screen.CloudBackup, 
+            Screen.SystemLogs
+        )
+        if (target in adminOnly && userRole != "admin") return
+
+        backStack.add(screen)
+        screen = target 
+    }
     fun replace(target: Screen) { backStack.clear(); screen = target }
     fun back() { screen = if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex) else Screen.Home }
 
@@ -58,7 +68,7 @@ fun OttoScentsApp() {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         when (screen) {
                             Screen.Home -> HomeScreen(viewModel, ::navigate)
-                            Screen.Inventory -> InventoryScreen(viewModel) { item -> selectedItem = item; navigate(Screen.ProductDetail) }
+                            Screen.Inventory -> InventoryScreen(viewModel, ::navigate) { item -> selectedItem = item; navigate(Screen.ProductDetail) }
                             Screen.ProductDetail -> ProductDetailScreen(selectedItem, ::navigate, ::back)
                             Screen.ProductForm -> ProductFormScreen(viewModel, selectedItem, backStack.lastOrNull() == Screen.ProductDetail, ::navigate, ::back)
                             Screen.Shelf -> ShelfScreen(viewModel, ::navigate)
@@ -71,9 +81,6 @@ fun OttoScentsApp() {
                             Screen.ShelfHistory -> ShelfCheckHistoryScreen(::back)
                             Screen.CloudBackup -> CloudBackupCheckScreen(::navigate, ::back)
                             Screen.StockLogs -> StockMovementLogsScreen(viewModel, ::navigate, ::back)
-                            Screen.Restock -> RestockManagementScreen(viewModel, ::navigate, ::back)
-                            Screen.CreateRestock -> CreateRestockRequestScreen(::back)
-                            Screen.ReceivingVerification -> ReceivingVerificationScreen(::navigate, ::back)
                             Screen.FanLogs -> FanActivityLogsScreen(viewModel, ::back)
                             Screen.SystemLogs -> SystemActivityLogsScreen(viewModel, ::back)
                             Screen.Help -> HelpGuideScreen(::back)

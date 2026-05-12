@@ -60,7 +60,7 @@ fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             Text("● 10 mins ago", modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).clip(RoundedCornerShape(999.dp)).background(Color.Black.copy(alpha = 0.65f)).padding(horizontal = 12.dp, vertical = 8.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatusChip("142 Detected", ChipVariant.Normal)
+            StatusChip("142 on Shelf", ChipVariant.Normal)
             StatusChip("3 Needs Review", ChipVariant.Review)
             StatusChip("1 Missing", ChipVariant.Missing)
         }

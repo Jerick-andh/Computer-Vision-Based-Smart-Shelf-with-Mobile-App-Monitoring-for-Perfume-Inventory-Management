@@ -24,12 +24,14 @@ import com.ottoscents.smartshelf.ui.components.*
 @Composable
 fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
     val branch by viewModel.userBranch.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
     val currentTemp by viewModel.currentTemperature.collectAsState()
     val fanActive by viewModel.isFanActive.collectAsState()
     val inventoryItems by viewModel.inventoryList.collectAsState()
     
-    val totalBottles = inventoryItems.sumOf { it.detected.coerceAtLeast(0) }
-    val needsReviewCount = inventoryItems.count { it.status == "needs_review" }
+    val lipaCount = inventoryItems.filter { it.branch.equals("Lipa", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
+    val sanPabloCount = inventoryItems.filter { it.branch.equals("San Pablo", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
+    val needsReviewCount = inventoryItems.count { it.status == "needs_review" || it.status == "low" }
 
     ScrollScreen(
         topBar = {
@@ -41,15 +43,47 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             )
         }
     ) {
+        Text("Stock by Branch", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, modifier = Modifier.padding(start = 4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth()) {
-            AppCard(modifier = Modifier.weight(1f), onClick = { navigate(Screen.Inventory) }) {
-                Text(totalBottles.toString(), fontSize = 40.sp, fontWeight = FontWeight.Light, color = TextBlack)
-                Text("Bottles Detected", fontSize = 14.sp, color = Muted, fontWeight = FontWeight.Medium)
+            AppCard(modifier = Modifier.weight(1f), onClick = { 
+                viewModel.setInventoryBranch("Lipa")
+                navigate(Screen.Inventory) 
+            }) {
+                Text(lipaCount.toString(), fontSize = 36.sp, fontWeight = FontWeight.Light, color = TextBlack)
+                Text("Lipa", fontSize = 13.sp, color = Muted, fontWeight = FontWeight.Medium)
             }
-            AppCard(modifier = Modifier.weight(1f), background = Color(0xFF111827), border = Color.Transparent, onClick = { navigate(Screen.Shelf) }) {
-                Text(needsReviewCount.toString(), fontSize = 40.sp, fontWeight = FontWeight.Light, color = Color.White)
-                Text("⚠ Needs Review", fontSize = 14.sp, color = Color(0xFFD1D5DB), fontWeight = FontWeight.Medium)
+            AppCard(modifier = Modifier.weight(1f), onClick = { 
+                viewModel.setInventoryBranch("San Pablo")
+                navigate(Screen.Inventory) 
+            }) {
+                Text(sanPabloCount.toString(), fontSize = 36.sp, fontWeight = FontWeight.Light, color = TextBlack)
+                Text("San Pablo", fontSize = 13.sp, color = Muted, fontWeight = FontWeight.Medium)
             }
+        }
+
+        AppCard(background = if (needsReviewCount > 0) Color(0xFF111827) else Color.White, onClick = { navigate(Screen.Alerts) }) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔔", fontSize = 18.sp, modifier = Modifier.padding(end = 8.dp))
+                    Text(
+                        if (needsReviewCount > 0) "Critical Notifications" else "Notifications", 
+                        fontSize = 14.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = if (needsReviewCount > 0) Color(0xFF9CA3AF) else TextBlack
+                    )
+                }
+                if (needsReviewCount > 0) {
+                    StatusChip(needsReviewCount.toString(), variant = ChipVariant.Critical, small = true)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                if (needsReviewCount > 0) "$needsReviewCount items need your immediate attention (Low stock or review required)." 
+                else "All systems normal. No stock issues detected.", 
+                color = if (needsReviewCount > 0) Color.White else Muted, 
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
 
         AppCard(onClick = { navigate(Screen.Temperature) }) {
@@ -79,8 +113,13 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             ActionCard("◉", "Shelf Monitor", Modifier.weight(1f)) { navigate(Screen.Shelf) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            ActionCard("+", "Add Product", Modifier.weight(1f)) { navigate(Screen.ProductForm) }
-            ActionCard("⇄", "Restock", Modifier.weight(1f)) { navigate(Screen.Restock) }
+            if (userRole == "admin") {
+                ActionCard("+", "Add Product", Modifier.weight(1f)) { navigate(Screen.ProductForm) }
+                Spacer(Modifier.weight(1f))
+            } else {
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
+            }
         }
     }
 }

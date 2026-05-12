@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import com.ottoscents.smartshelf.ui.components.*
 
 @Composable
 fun LoginScreen(viewModel: MainViewModel) {
+    var isRegisterMode by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val loginError by viewModel.loginError.collectAsState()
@@ -28,13 +30,18 @@ fun LoginScreen(viewModel: MainViewModel) {
             .fillMaxSize()
             .background(Color.White)
             .padding(horizontal = 24.dp)
-            .padding(top = 126.dp, bottom = 30.dp),
+            .padding(top = 100.dp, bottom = 30.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Column {
                 Text("Otto Scents", fontSize = 36.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.6).sp, color = TextBlack)
-                Text("Smart Shelf Monitoring", fontSize = 18.sp, color = LightMuted, modifier = Modifier.padding(top = 6.dp, bottom = 28.dp))
+                Text(
+                    if (isRegisterMode) "Create Staff Account" else "Smart Shelf Monitoring", 
+                    fontSize = 18.sp, 
+                    color = LightMuted, 
+                    modifier = Modifier.padding(top = 6.dp, bottom = 28.dp)
+                )
             }
             OutlinedTextField(value = email, onValueChange = { email = it }, placeholder = { Text("Email address") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
             OutlinedTextField(value = password, onValueChange = { password = it }, placeholder = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp))
@@ -43,8 +50,28 @@ fun LoginScreen(viewModel: MainViewModel) {
                 Text(loginError!!, color = Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
 
-            Text("Forgot password?", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End, fontSize = 14.sp, color = Muted, fontWeight = FontWeight.Medium)
-            AppButton("Sign In", onClick = { viewModel.login(email, password) })
+            if (!isRegisterMode) {
+                Text("Forgot password?", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End, fontSize = 14.sp, color = Muted, fontWeight = FontWeight.Medium)
+            }
+
+            AppButton(
+                text = if (isRegisterMode) "Register Account" else "Sign In", 
+                onClick = { 
+                    if (isRegisterMode) viewModel.register(email, password)
+                    else viewModel.login(email, password)
+                }
+            )
+
+            TextButton(
+                onClick = { isRegisterMode = !isRegisterMode },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (isRegisterMode) "Already have an account? Sign In" else "Need an account? Register",
+                    color = Muted,
+                    fontSize = 14.sp
+                )
+            }
         }
         Text("© 2026 Otto Scents. All rights reserved.", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 12.sp, color = LightMuted)
     }

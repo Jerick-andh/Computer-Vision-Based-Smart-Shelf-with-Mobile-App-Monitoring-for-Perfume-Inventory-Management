@@ -5,6 +5,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
@@ -12,14 +13,20 @@ class FirestoreRepository {
 
     // --- Stream Handlers (Queries) ---
 
-    fun getInventoryStream(): Flow<List<InventoryItem>> = 
-        collectionStream("inventory", InventoryItem::class.java)
+    fun getInventoryStream(): Flow<List<InventoryItem>> = combine(
+        collectionStream("inventory_lipa", InventoryItem::class.java),
+        collectionStream("inventory_san_pablo", InventoryItem::class.java)
+    ) { lipa, sanPablo -> lipa + sanPablo }
 
-    fun getAlertsStream(): Flow<List<AlertItem>> = 
-        collectionStream("alerts", AlertItem::class.java, "time", Query.Direction.DESCENDING)
+    fun getAlertsStream(): Flow<List<AlertItem>> = combine(
+        collectionStream("alerts_lipa", AlertItem::class.java, "time", Query.Direction.DESCENDING),
+        collectionStream("alerts_san_pablo", AlertItem::class.java, "time", Query.Direction.DESCENDING)
+    ) { lipa, sanPablo -> (lipa + sanPablo).sortedByDescending { it.time } }
 
-    fun getMovementLogsStream(): Flow<List<MovementLog>> = 
-        collectionStream("movement_logs", MovementLog::class.java, "timestamp", Query.Direction.DESCENDING)
+    fun getMovementLogsStream(): Flow<List<MovementLog>> = combine(
+        collectionStream("movement_logs_lipa", MovementLog::class.java, "timestamp", Query.Direction.DESCENDING),
+        collectionStream("movement_logs_san_pablo", MovementLog::class.java, "timestamp", Query.Direction.DESCENDING)
+    ) { lipa, sanPablo -> (lipa + sanPablo).sortedByDescending { it.timestamp } }
 
     fun getRestockRequestsStream(): Flow<List<RestockItem>> = 
         collectionStream<RestockItem>("restock_requests", RestockItem::class.java)
@@ -27,28 +34,53 @@ class FirestoreRepository {
     fun getSystemLogsStream(): Flow<List<SystemActivity>> = 
         collectionStream("system_logs", SystemActivity::class.java, "createdAt", Query.Direction.DESCENDING)
 
-    fun getFanLogsStream(): Flow<List<FanActivity>> = 
-        collectionStream("fan_logs", FanActivity::class.java, "startTime", Query.Direction.DESCENDING)
+    fun getFanLogsStream(branch: String): Flow<List<FanActivity>> {
+        val collection = if (branch == "Lipa") "fan_logs_lipa" else "fan_logs_san_pablo"
+        return collectionStream(collection, FanActivity::class.java, "startTime", Query.Direction.DESCENDING)
+    }
 
     // --- Data Modifiers (Actions) ---
 
-    suspend fun saveInventoryItem(item: InventoryItem) = 
-        saveDocument("inventory", item.id, item)
+    suspend fun saveInventoryItem(item: InventoryItem) {
+        val collection = if (item.branch == "Lipa") "inventory_lipa" else "inventory_san_pablo"
+        val docId = item.perfumeCode
+        db.collection(collection).document(docId).set(item).await()
+    }
 
-    suspend fun deleteInventoryItem(itemId: String) = 
-        db.collection("inventory").document(itemId).delete().await()
+    suspend fun deleteInventoryItem(item: InventoryItem) {
+        val collection = if (item.branch == "Lipa") "inventory_lipa" else "inventory_san_pablo"
+        db.collection(collection).document(item.perfumeCode).delete().await()
+    }
 
-    suspend fun saveRestockRequest(item: RestockItem) = 
-        saveDocument("restock_requests", item.id, item)
+    suspend fun saveRestockRequest(item: RestockItem) {
+        // Restock requests are cross-branch, using unique ID based on product and date
+        val docId = "${item.toBranch}_${item.productName}_${item.requestedDate}".replace(" ", "_").replace("#", "")
+        db.collection("restock_requests").document(docId).set(item).await()
+    }
 
-    suspend fun saveFanActivity(activity: FanActivity) = 
-        saveDocument("fan_logs", activity.id, activity)
+    suspend fun saveFanActivity(activity: FanActivity) {
+        val collection = if (activity.branch == "Lipa") "fan_logs_lipa" else "fan_logs_san_pablo"
+        val docId = activity.startTime.replace(" ", "_").replace("•", "_").replace(",", "").replace(":", "")
+        db.collection(collection).document(docId).set(activity).await()
+    }
 
-    suspend fun saveSystemActivity(activity: SystemActivity) = 
-        saveDocument("system_logs", activity.id, activity)
+    suspend fun saveSystemActivity(activity: SystemActivity) {
+        // System logs are global but with readable IDs
+        val docId = "${activity.type}_${activity.createdAt}"
+        db.collection("system_logs").document(docId).set(activity).await()
+    }
 
-    suspend fun saveAlert(alert: AlertItem) = 
-        saveDocument("alerts", alert.id, alert)
+    suspend fun saveAlert(alert: AlertItem) {
+        val collection = if (alert.branch == "Lipa") "alerts_lipa" else "alerts_san_pablo"
+        val docId = alert.time.replace(" ", "_").replace("•", "_").replace(",", "").replace(":", "")
+        db.collection(collection).document(docId).set(alert).await()
+    }
+
+    suspend fun saveMovementLog(log: MovementLog) {
+        val collection = if (log.branch == "Lipa") "movement_logs_lipa" else "movement_logs_san_pablo"
+        val docId = log.timestamp.replace(" ", "_").replace("•", "_").replace(",", "").replace(":", "")
+        db.collection(collection).document(docId).set(log).await()
+    }
 
     // --- Stored Procedure Logic (Complex Operations) ---
 
@@ -63,7 +95,8 @@ class FirestoreRepository {
         db.runBatch { batch ->
             // Update all inventory items
             updates.forEach { item ->
-                val ref = db.collection("inventory").document(item.id)
+                val collection = if (item.branch == "Lipa") "inventory_lipa" else "inventory_san_pablo"
+                val ref = db.collection(collection).document(item.perfumeCode)
                 batch.set(ref, item)
             }
             // Log the activity
@@ -76,14 +109,35 @@ class FirestoreRepository {
         return try {
             val doc = db.collection("users").document(uid).get().await()
             if (doc.exists()) {
-                val roleStr = doc.getString("role") ?: "staff"
-                val branchStr = doc.getString("branch") ?: ""
-                UserRole(id = doc.id, role = roleStr, branch = branchStr)
+                doc.toObject(UserRole::class.java)
             } else null
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
+    }
+
+    suspend fun saveUserDetails(user: UserRole) {
+        // Use the Firestore Auth UID as the document ID for users
+        if (user.id.isNotEmpty()) {
+            db.collection("users").document(user.id).set(user).await()
+        }
+    }
+
+    suspend fun getSystemSettings(): SystemSettings? {
+        return try {
+            val doc = db.collection("settings").document("global_config").get().await()
+            if (doc.exists()) {
+                doc.toObject(SystemSettings::class.java)
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun saveSystemSettings(settings: SystemSettings) {
+        db.collection("settings").document("global_config").set(settings).await()
     }
 
     // --- Private Generic Helpers to Maximize Code Reuse ---

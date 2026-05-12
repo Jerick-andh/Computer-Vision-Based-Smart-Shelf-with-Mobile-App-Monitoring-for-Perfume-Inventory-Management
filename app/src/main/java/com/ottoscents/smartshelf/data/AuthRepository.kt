@@ -18,6 +18,16 @@ class AuthRepository {
         }
     }
 
+    suspend fun register(email: String, password: String): Boolean {
+        return try {
+            auth.createUserWithEmailAndPassword(email, password).await()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     fun logout() {
         auth.signOut()
     }
