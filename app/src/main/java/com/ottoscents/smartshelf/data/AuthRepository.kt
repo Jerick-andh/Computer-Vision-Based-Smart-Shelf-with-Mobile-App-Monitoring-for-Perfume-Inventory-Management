@@ -13,7 +13,6 @@ class AuthRepository {
             auth.signInWithEmailAndPassword(email, password).await()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
             false
         }
     }
@@ -23,7 +22,6 @@ class AuthRepository {
             auth.createUserWithEmailAndPassword(email, password).await()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
             false
         }
     }

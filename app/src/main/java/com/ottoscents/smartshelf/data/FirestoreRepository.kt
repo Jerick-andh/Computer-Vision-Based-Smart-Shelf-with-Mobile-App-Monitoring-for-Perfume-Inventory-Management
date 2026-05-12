@@ -111,8 +111,7 @@ class FirestoreRepository {
             if (doc.exists()) {
                 doc.toObject(UserRole::class.java)
             } else null
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
             null
         }
     }
@@ -130,8 +129,7 @@ class FirestoreRepository {
             if (doc.exists()) {
                 doc.toObject(SystemSettings::class.java)
             } else null
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
             null
         }
     }

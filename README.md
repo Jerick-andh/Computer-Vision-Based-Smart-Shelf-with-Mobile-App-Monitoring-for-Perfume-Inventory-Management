@@ -7,7 +7,7 @@ Native Android Kotlin/Jetpack Compose conversion of the uploaded React/TypeScrip
 ## How to open
 1. Extract this folder.
 2. Open Android Studio.
-3. Choose **Open** and select the `OttoScentsKotlinApp` folder.
+3. Choose **Open** and select the root directory (where `build.gradle.kts` and `settings.gradle.kts` are located).
 4. Wait for Gradle sync.
 5. Run the app on an emulator or Android phone.
 
@@ -19,8 +19,12 @@ Email: admin@ottoscents.com
 Password: password123
 
 Staff:
-Email: staff@ottoscents.com
-Password: password123
+Email: staff1@ottoscents.com
+Password: passw*ord123*
+
+Staff:
+Email: staff2@ottoscents.com
+Password: passw*ord123*
 
 ## Included screens
 - Login

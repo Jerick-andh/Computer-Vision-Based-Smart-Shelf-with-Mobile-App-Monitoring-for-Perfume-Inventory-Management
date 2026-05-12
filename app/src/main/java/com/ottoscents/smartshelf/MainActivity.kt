@@ -18,7 +18,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.google.firebase.FirebaseApp.initializeApp(this)
-        com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(true)
+        if (com.ottoscents.smartshelf.BuildConfig.DEBUG) {
+            com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(true)
+        }
         setContent { OttoScentsApp() }
     }
 }
