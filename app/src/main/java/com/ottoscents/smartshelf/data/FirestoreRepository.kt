@@ -123,6 +123,22 @@ class FirestoreRepository {
         }
     }
 
+    fun getSystemSettingsStream(): Flow<SystemSettings?> = callbackFlow {
+        val subscription = db.collection("settings").document("global_config")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    trySend(snapshot.toObject(SystemSettings::class.java))
+                } else {
+                    trySend(null)
+                }
+            }
+        awaitClose { subscription.remove() }
+    }
+
     suspend fun getSystemSettings(): SystemSettings? {
         return try {
             val doc = db.collection("settings").document("global_config").get().await()
@@ -136,6 +152,14 @@ class FirestoreRepository {
 
     suspend fun saveSystemSettings(settings: SystemSettings) {
         db.collection("settings").document("global_config").set(settings).await()
+    }
+
+    suspend fun updateSystemSettingsField(field: String, value: Any) {
+        db.collection("settings").document("global_config").update(field, value).await()
+    }
+
+    suspend fun updateSystemSettings(fields: Map<String, Any>) {
+        db.collection("settings").document("global_config").update(fields).await()
     }
 
     // --- Private Generic Helpers to Maximize Code Reuse ---

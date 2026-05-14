@@ -7,18 +7,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,8 +30,37 @@ import com.ottoscents.smartshelf.ui.components.*
 @Composable
 fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
     val handshakeStatus by viewModel.handshakeStatus.collectAsState()
-    val detections by viewModel.detections.collectAsState()
-    val context = LocalContext.current
+    var showBranchDialog by remember { mutableStateOf(false) }
+
+    if (showBranchDialog) {
+        AlertDialog(
+            onDismissRequest = { showBranchDialog = false },
+            title = { Text("Manual Inventory Check", fontWeight = FontWeight.Bold) },
+            text = { Text("Which branch shelf would you like to scan? Each branch has its own set of simulation scenarios.") },
+            confirmButton = {},
+            dismissButton = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    AppButton("Lipa Branch") { 
+                        viewModel.triggerManualInventory("Lipa")
+                        showBranchDialog = false
+                    }
+                    AppButton("San Pablo Branch") { 
+                        viewModel.triggerManualInventory("San Pablo")
+                        showBranchDialog = false
+                    }
+                    AppButton("Both Branches", variant = ButtonVariant.Secondary) { 
+                        viewModel.triggerManualInventory("Both")
+                        showBranchDialog = false
+                    }
+                    TextButton(onClick = { showBranchDialog = false }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Cancel", color = Muted)
+                    }
+                }
+            },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = Color.White
+        )
+    }
 
     ScrollScreen(topBar = { TopBar("Shelf Monitor") }) {
         AppCard(
@@ -49,20 +79,8 @@ fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
         }
 
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(32.dp)).background(Color(0xFFE5E7EB)).border(1.dp, BorderGray, RoundedCornerShape(32.dp))) {
-            Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) { Text("◉", color = LightMuted, fontSize = 32.sp); Text("Camera Feed", color = LightMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
+            Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) { Text("◉", color = LightMuted, fontSize = 32.sp); Text("Live View Unavailable", color = LightMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium); Text("Monitor via Dashboard", color = LightMuted, fontSize = 10.sp) }
             
-            // YOLO Detection Bounding Boxes Overlay
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                detections.forEach { detection ->
-                    drawRect(
-                        color = Color.Green,
-                        topLeft = Offset(detection.boundingBox.left, detection.boundingBox.top),
-                        size = Size(detection.boundingBox.width(), detection.boundingBox.height()),
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-                }
-            }
-
             Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ShelfArea("Area A1", Modifier.weight(1f).fillMaxHeight()) { navigate(Screen.ShelfAreaDetail) }
@@ -88,16 +106,11 @@ fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             Text("☁  Cloud Sync Active", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted)
             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Green))
         }
-        AppButton("◉  Run Shelf Check Now", onClick = { viewModel.runInventoryCheck() })
         
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AppButton("Demo: Full", modifier = Modifier.weight(1f), variant = ButtonVariant.Outline, onClick = { 
-                viewModel.runYoloCheck(context, "samples/shelf_full.jpg") 
-            })
-            AppButton("Demo: Empty", modifier = Modifier.weight(1f), variant = ButtonVariant.Outline, onClick = { 
-                viewModel.runYoloCheck(context, "samples/shelf_empty.jpg") 
-            })
-        }
+        AppButton(
+            text = "◉  Run Manual Inventory Check", 
+            onClick = { showBranchDialog = true }
+        )
 
         AppButton("Capture Schedule", variant = ButtonVariant.Secondary, onClick = { navigate(Screen.Schedule) })
     }

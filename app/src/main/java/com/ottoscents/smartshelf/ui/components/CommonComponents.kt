@@ -41,11 +41,12 @@ val Blue = Color(0xFF2563EB)
 val BlueBg = Color(0xFFEFF6FF)
 val Yellow = Color(0xFFCA8A04)
 val YellowBg = Color(0xFFFEFCE8)
+val Purple = Color(0xFF9333EA)
 val PurpleBg = Color(0xFFFAF5FF)
 val IndigoBg = Color(0xFFEEF2FF)
 val TealBg = Color(0xFFF0FDFA)
 
-enum class ChipVariant { Normal, Missing, Review, Low, Returned, Outline, Black, Warning, Critical, Green, Blue }
+enum class ChipVariant { Normal, Missing, Review, Low, Returned, Outline, Black, Warning, Critical, Green, Blue, Misplaced }
 enum class ButtonVariant { Primary, Secondary, Outline, Ghost, Danger }
 
 @Composable
@@ -129,13 +130,14 @@ fun StatusChip(text: String, variant: ChipVariant = ChipVariant.Normal, small: B
         ChipVariant.Black -> Color.Black to Color.White
         ChipVariant.Green -> GreenBg to Green
         ChipVariant.Blue -> BlueBg to Blue
+        ChipVariant.Misplaced -> PurpleBg to Purple
     }
     Text(
         text = text,
         modifier = modifier
             .clip(RoundedCornerShape(999.dp))
             .background(colors.first)
-            .border(if (variant in listOf(ChipVariant.Returned, ChipVariant.Outline, ChipVariant.Missing, ChipVariant.Review, ChipVariant.Critical, ChipVariant.Warning)) 1.dp else 0.dp, BorderGray, RoundedCornerShape(999.dp))
+            .border(if (variant in listOf(ChipVariant.Returned, ChipVariant.Outline, ChipVariant.Missing, ChipVariant.Review, ChipVariant.Critical, ChipVariant.Warning, ChipVariant.Misplaced)) 1.dp else 0.dp, BorderGray, RoundedCornerShape(999.dp))
             .padding(horizontal = if (small) 8.dp else 12.dp, vertical = if (small) 4.dp else 6.dp),
         fontSize = if (small) 10.sp else 12.sp,
         fontWeight = FontWeight.Medium,

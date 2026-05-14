@@ -18,10 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.flatMapLatest
-import com.ottoscents.smartshelf.vision.OnnxDetectorHelper
-import com.ottoscents.smartshelf.vision.DetectionResult
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.content.Context
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -80,11 +76,21 @@ class MainViewModel : ViewModel() {
     private val _lowStockThreshold = MutableStateFlow(5)
     val lowStockThreshold: StateFlow<Int> = _lowStockThreshold.asStateFlow()
 
-    private val _detections = MutableStateFlow<List<DetectionResult>>(emptyList())
-    val detections: StateFlow<List<DetectionResult>> = _detections.asStateFlow()
-
     private val _selectedInventoryBranch = MutableStateFlow("All Branches")
     val selectedInventoryBranch: StateFlow<String> = _selectedInventoryBranch.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            firestoreRepo.getSystemSettingsStream().collect { settings ->
+                if (settings != null) {
+                    _currentTemperature.value = settings.currentTemperature.toFloat()
+                    _isFanActive.value = settings.isFanActive
+                    _captureSchedule.value = settings.captureSchedule
+                    _lowStockThreshold.value = settings.lowStockThreshold
+                }
+            }
+        }
+    }
 
     fun setInventoryBranch(branch: String) {
         _selectedInventoryBranch.value = branch
@@ -96,10 +102,7 @@ class MainViewModel : ViewModel() {
         
         // Persist to database
         viewModelScope.launch {
-            firestoreRepo.saveSystemSettings(SystemSettings(
-                captureSchedule = schedule,
-                lowStockThreshold = _lowStockThreshold.value
-            ))
+            firestoreRepo.updateSystemSettingsField("captureSchedule", schedule)
         }
     }
 
@@ -109,10 +112,7 @@ class MainViewModel : ViewModel() {
         
         // Persist to database
         viewModelScope.launch {
-            firestoreRepo.saveSystemSettings(SystemSettings(
-                captureSchedule = _captureSchedule.value,
-                lowStockThreshold = threshold
-            ))
+            firestoreRepo.updateSystemSettingsField("lowStockThreshold", threshold)
         }
     }
 
@@ -245,8 +245,10 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             val branch = _userBranch.value ?: "Lipa"
             val spikeTemp = 26.5f
-            _currentTemperature.value = spikeTemp
-            _isFanActive.value = true
+            
+            // Push to Firestore so the simulator can react
+            firestoreRepo.updateSystemSettingsField("currentTemperature", spikeTemp.toDouble())
+            
             val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
 
             firestoreRepo.saveFanActivity(
@@ -275,66 +277,40 @@ class MainViewModel : ViewModel() {
 
     fun resetCoolingSystem() {
         viewModelScope.launch {
-            _isFanActive.value = false
-            _currentTemperature.value = 22.4f
+            firestoreRepo.updateSystemSettings(mapOf(
+                "isFanActive" to false,
+                "currentTemperature" to 22.4
+            ))
             logActivity("fan_activation", "Cooling system reset. Fan stopped.")
         }
     }
 
-    fun runInventoryCheck() {
-        // This is the old simulated check
-        simulateInventoryCheck()
-    }
-
-    fun runYoloCheck(context: Context, assetName: String) {
+    fun triggerManualInventory(target: String) {
         viewModelScope.launch {
-            _handshakeStatus.value = "PROCESSING_IMAGE..."
-            
-            val detections = withContext(Dispatchers.IO) {
-                try {
-                    val inputStream = context.assets.open(assetName)
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    val detector = OnnxDetectorHelper(context)
-                    val results = detector.detect(bitmap)
-                    detector.close()
-                    results
-                } catch (e: Exception) {
-                    emptyList<DetectionResult>()
-                }
-            }
-            
-            _detections.value = detections
-            _handshakeStatus.value = "DETECTION_COMPLETE"
-            
-            // Update inventory based on bottle count
-            val bottleCount = detections.size 
-            updateInventoryFromDetections(bottleCount)
-        }
-    }
-
-    private fun updateInventoryFromDetections(count: Int) {
-        viewModelScope.launch {
-            val now = java.text.SimpleDateFormat("MMM d, yyyy • h:mm a", java.util.Locale.getDefault()).format(java.util.Date())
-            val currentBranch = _userBranch.value ?: "Lipa"
-            
-            val updates = inventoryList.value.filter { it.branch == currentBranch }.map { item ->
-                // For demonstration, we'll just update one item or distribute the count
-                item.copy(
-                    detected = if (item.name == "Rose Petal") count else item.detected,
-                    status = if (count <= _lowStockThreshold.value) "low" else "normal",
-                    lastUpdated = now
+            _handshakeStatus.value = "TRIGGERING_REMOTE_CHECK..."
+            try {
+                // Atomic update: Set both the trigger and the branch in ONE step to avoid race conditions
+                val updates = mapOf(
+                    "manualTriggerPending" to true,
+                    "triggerBranch" to target
                 )
+                firestoreRepo.updateSystemSettings(updates)
+                logActivity("manual_trigger", "Manual inventory run requested for $target.")
+                
+                // Keep status for a bit then revert to idle if no response (simplified)
+                delay(5000)
+                if (_handshakeStatus.value == "TRIGGERING_REMOTE_CHECK...") {
+                    _handshakeStatus.value = "IDLE"
+                }
+            } catch (e: Exception) {
+                _handshakeStatus.value = "TRIGGER_FAILED"
             }
-            
-            firestoreRepo.processBulkInventoryUpdate(updates, SystemActivity(
-                type = "shelf_check",
-                description = "YOLO Detection completed. $count items found.",
-                user = authRepo.currentUser?.email ?: "System",
-                branch = currentBranch,
-                timestamp = now,
-                createdAt = System.currentTimeMillis()
-            ))
         }
+    }
+
+    fun runInventoryCheck() {
+        // Now using the remote trigger for manual inventory runs
+        // This is now called after branch selection in the UI
     }
 
     private fun simulateInventoryCheck() {

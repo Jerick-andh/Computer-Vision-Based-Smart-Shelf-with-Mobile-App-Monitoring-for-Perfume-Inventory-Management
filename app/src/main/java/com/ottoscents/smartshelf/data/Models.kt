@@ -95,5 +95,9 @@ data class UserRole(
 data class SystemSettings(
     val captureSchedule: String = "Manual Only",
     val lowStockThreshold: Int = 5,
-    val temperatureThreshold: Double = 25.0
+    val temperatureThreshold: Double = 25.0,
+    val currentTemperature: Double = 22.4,
+    val isFanActive: Boolean = false,
+    val manualTriggerPending: Boolean = false,
+    val triggerBranch: String = "Both"
 )

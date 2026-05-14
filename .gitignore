@@ -30,6 +30,13 @@ ehthumbs.db
 *.py
 *.pyc
 __pycache__/
+.venv/
+venv/
+venv_train/
+.ipynb_checkpoints/
+perfume_dataset/
+docs/shelf_captures/lipa/
+docs/shelf_captures/san_pablo/
 
 # Build outputs
 *.apk

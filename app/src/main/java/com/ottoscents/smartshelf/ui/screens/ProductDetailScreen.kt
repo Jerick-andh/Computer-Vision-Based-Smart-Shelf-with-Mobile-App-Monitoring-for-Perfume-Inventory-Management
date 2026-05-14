@@ -47,7 +47,7 @@ fun ProductDetailScreen(item: InventoryItem?, navigate: (Screen) -> Unit, back: 
             modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val fullDisplayName = if (item?.perfumeCode?.isNotEmpty() == true) "${item.perfumeCode} ${item.name}" else (item?.name ?: "Unknown Product")
+            val fullDisplayName = if (item?.perfumeCode?.isNotEmpty() == true) "Product ${item.perfumeCode}: ${item.name}" else (item?.name ?: "Unknown Product")
             Text(
                 text = fullDisplayName,
                 fontSize = 28.sp,

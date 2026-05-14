@@ -47,9 +47,6 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-base")
     
-    // ONNX Runtime for YOLO
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.26.0")
-    
     // ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 

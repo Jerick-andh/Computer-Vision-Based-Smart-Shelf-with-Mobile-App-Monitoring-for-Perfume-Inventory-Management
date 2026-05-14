@@ -31,7 +31,9 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
     
     val lipaCount = inventoryItems.filter { it.branch.equals("Lipa", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
     val sanPabloCount = inventoryItems.filter { it.branch.equals("San Pablo", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
-    val needsReviewCount = inventoryItems.count { it.status == "needs_review" || it.status == "low" }
+    val needsReviewCount = inventoryItems.count { 
+        it.status == "needs_review" || it.status == "low" || it.status == "misplaced" || it.status == "missing" 
+    }
 
     ScrollScreen(
         topBar = {
@@ -78,7 +80,7 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                if (needsReviewCount > 0) "$needsReviewCount items need your immediate attention (Low stock or review required)." 
+                if (needsReviewCount > 0) "$needsReviewCount items need attention (Low stock, missing, or misplaced)."
                 else "All systems normal. No stock issues detected.", 
                 color = if (needsReviewCount > 0) Color.White else Muted, 
                 fontSize = 14.sp,

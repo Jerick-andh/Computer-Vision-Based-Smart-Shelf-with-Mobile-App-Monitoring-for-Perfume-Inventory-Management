@@ -37,6 +37,7 @@ fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onSele
         val matchesStatus = when (selectedFilter) {
             "Low Stock" -> item.status == "low"
             "Missing" -> item.status == "missing"
+            "Misplaced" -> item.status == "misplaced"
             "Needs Review" -> item.status == "needs_review"
             else -> true
         }
@@ -71,7 +72,7 @@ fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onSele
             Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(18.dp)).background(SoftGray).border(1.dp, BorderGray, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { Text("☰", color = Muted) }
         }
         Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val filters = listOf("All Items", "Low Stock", "Missing", "Needs Review")
+            val filters = listOf("All Items", "Low Stock", "Missing", "Misplaced", "Needs Review")
             filters.forEach { filter ->
                 val isActive = selectedFilter == filter
                 StatusChip(
@@ -104,7 +105,7 @@ fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onSele
                 categories.forEach { category ->
                     val itemsInCategory = filteredItems
                         .filter { it.category.equals(category, ignoreCase = true) }
-                        .sortedBy { it.perfumeCode.removePrefix("#").toIntOrNull() ?: 999 }
+                        .sortedBy { it.perfumeCode }
                     
                     if (itemsInCategory.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -153,12 +154,14 @@ private fun InventoryCard(item: InventoryItem, onClick: () -> Unit) {
         "normal" -> ChipVariant.Normal
         "missing" -> ChipVariant.Missing
         "low" -> ChipVariant.Low
+        "misplaced" -> ChipVariant.Misplaced
         else -> ChipVariant.Review
     }
     val label = when (item.status) {
         "normal" -> "Normal"
         "missing" -> "Missing"
         "low" -> "Low Stock"
+        "misplaced" -> "Misplaced"
         else -> "Needs Review"
     }
     AppCard(background = Color.White, radius = 24.dp, onClick = onClick) {
