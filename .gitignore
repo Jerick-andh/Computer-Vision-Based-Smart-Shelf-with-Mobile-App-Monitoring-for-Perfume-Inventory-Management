@@ -27,6 +27,7 @@ ehthumbs.db
 *.txt
 
 # Python scripts
+*.py
 *.pyc
 __pycache__/
 .venv/
