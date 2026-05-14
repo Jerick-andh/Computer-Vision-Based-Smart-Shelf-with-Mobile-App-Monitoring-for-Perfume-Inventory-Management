@@ -9,12 +9,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,17 +65,15 @@ fun TopBar(title: String, showBack: Boolean = false, onBack: (() -> Unit)? = nul
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             if (showBack && onBack != null) {
-                Text(
-                    text = "‹",
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .clickable { onBack() },
-                    textAlign = TextAlign.Center,
-                    fontSize = 32.sp,
-                    color = TextBlack
-                )
-                Spacer(Modifier.width(6.dp))
+                IconButton(onClick = onBack, modifier = Modifier.size(44.dp)) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronLeft, 
+                        contentDescription = "Back",
+                        tint = TextBlack,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
             }
             Text(title, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -268,11 +269,11 @@ fun FormDropdownField(
 @Composable
 fun BottomNav(current: Screen, onNavigate: (Screen) -> Unit) {
     val tabs = listOf(
-        Triple("Home", Screen.Home, "⌂"),
-        Triple("Inventory", Screen.Inventory, "□"),
-        Triple("Shelf", Screen.Shelf, "◉"),
-        Triple("Alerts", Screen.Alerts, "!"),
-        Triple("Settings", Screen.Settings, "⚙")
+        Triple("Home", Screen.Home, Icons.Rounded.Home),
+        Triple("Inventory", Screen.Inventory, Icons.Rounded.Inventory2),
+        Triple("Shelf", Screen.Shelf, Icons.Rounded.Camera),
+        Triple("Alerts", Screen.Alerts, Icons.Rounded.Notifications),
+        Triple("Settings", Screen.Settings, Icons.Rounded.Settings)
     )
     Row(
         modifier = Modifier
@@ -293,7 +294,12 @@ fun BottomNav(current: Screen, onNavigate: (Screen) -> Unit) {
                     .padding(horizontal = 8.dp, vertical = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(icon, fontSize = 24.sp, color = if (active) Color.Black else LightMuted)
+                Icon(
+                    imageVector = icon, 
+                    contentDescription = label,
+                    tint = if (active) Color.Black else LightMuted,
+                    modifier = Modifier.size(26.dp)
+                )
                 Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (active) Color.Black else Color.Transparent)
             }
         }

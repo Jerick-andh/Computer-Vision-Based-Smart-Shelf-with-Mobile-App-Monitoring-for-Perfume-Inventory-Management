@@ -19,6 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.flatMapLatest
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +82,17 @@ class MainViewModel : ViewModel() {
     private val _selectedInventoryBranch = MutableStateFlow("All Branches")
     val selectedInventoryBranch: StateFlow<String> = _selectedInventoryBranch.asStateFlow()
 
+    private val _isOnline = MutableStateFlow(true)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+
+    private val _isEdgeConnected = MutableStateFlow(false)
+    val isEdgeConnected: StateFlow<Boolean> = _isEdgeConnected.asStateFlow()
+
+    private val _calibrationImage = MutableStateFlow<Bitmap?>(null)
+    val calibrationImage: StateFlow<Bitmap?> = _calibrationImage.asStateFlow()
+
+    private var lastKnownHeartbeat: Long = 0
+
     init {
         viewModelScope.launch {
             firestoreRepo.getSystemSettingsStream().collect { settings ->
@@ -87,10 +101,44 @@ class MainViewModel : ViewModel() {
                     _isFanActive.value = settings.isFanActive
                     _captureSchedule.value = settings.captureSchedule
                     _lowStockThreshold.value = settings.lowStockThreshold
+                    lastKnownHeartbeat = settings.lastHeartbeat
+                    
+                    // Decode Calibration Frame if present
+                    settings.calibrationFrame?.let { base64 ->
+                        try {
+                            val bytes = Base64.decode(base64, Base64.DEFAULT)
+                            _calibrationImage.value = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        } catch (e: Exception) {
+                            _calibrationImage.value = null
+                        }
+                    } ?: run {
+                        _calibrationImage.value = null
+                    }
                 }
             }
         }
+        
+        // Connectivity check & Heartbeat Monitor
+        viewModelScope.launch {
+            while (true) {
+                // 1. App Online Check (Simulated)
+                _isOnline.value = true 
+                
+                // 2. Edge Heartbeat Monitor: Check if last heartbeat was within 60s
+                val now = System.currentTimeMillis()
+                _isEdgeConnected.value = (now - lastKnownHeartbeat) < 60000 && lastKnownHeartbeat > 0
+                
+                delay(10000) // Check every 10 seconds
+            }
+        }
     }
+
+    val lastCheckTime: StateFlow<String> = firestoreRepo.getSystemLogsStream()
+        .flatMapLatest { logs ->
+            val lastCheck = logs.firstOrNull { it.type == "shelf_check" }?.timestamp ?: "No scans yet"
+            MutableStateFlow(lastCheck)
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, "No scans yet")
 
     fun setInventoryBranch(branch: String) {
         _selectedInventoryBranch.value = branch

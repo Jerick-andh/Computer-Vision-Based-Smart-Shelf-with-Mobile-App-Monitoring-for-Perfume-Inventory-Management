@@ -3,8 +3,12 @@ package com.ottoscents.smartshelf.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,6 +32,9 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
     val currentTemp by viewModel.currentTemperature.collectAsState()
     val fanActive by viewModel.isFanActive.collectAsState()
     val inventoryItems by viewModel.inventoryList.collectAsState()
+    val lastCheck by viewModel.lastCheckTime.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
+    val isEdgeActive by viewModel.isEdgeConnected.collectAsState()
     
     val lipaCount = inventoryItems.filter { it.branch.equals("Lipa", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
     val sanPabloCount = inventoryItems.filter { it.branch.equals("San Pablo", ignoreCase = true) }.sumOf { it.detected.coerceAtLeast(0) }
@@ -66,7 +73,12 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
         AppCard(background = if (needsReviewCount > 0) Color(0xFF111827) else Color.White, onClick = { navigate(Screen.Alerts) }) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔔", fontSize = 18.sp, modifier = Modifier.padding(end = 8.dp))
+                    Icon(
+                        imageVector = if (needsReviewCount > 0) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
+                        contentDescription = "Alerts",
+                        tint = if (needsReviewCount > 0) Orange else LightMuted,
+                        modifier = Modifier.padding(end = 8.dp).size(20.dp)
+                    )
                     Text(
                         if (needsReviewCount > 0) "Critical Notifications" else "Notifications", 
                         fontSize = 14.sp, 
@@ -90,7 +102,11 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
 
         AppCard(onClick = { navigate(Screen.Temperature) }) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("🌡 Shelf Climate", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Thermostat, contentDescription = null, tint = Muted, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Shelf Climate", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted)
+                }
                 StatusChip(if (currentTemp > 25) "High" else "Normal", variant = if (currentTemp > 25) ChipVariant.Warning else ChipVariant.Normal)
             }
             Spacer(Modifier.height(14.dp))
@@ -99,24 +115,49 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
                     Text(String.format("%.1f", currentTemp), fontSize = 32.sp, fontWeight = FontWeight.Light, color = TextBlack)
                     Text("°C", fontSize = 16.sp, color = LightMuted, modifier = Modifier.padding(bottom = 4.dp, start = 3.dp))
                 }
-                Text(if (fanActive) "☁ Fan ON" else "☁ Fan Off", color = if (fanActive) Blue else Muted, fontSize = 14.sp, fontWeight = if (fanActive) FontWeight.Bold else FontWeight.Normal)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.Air, 
+                        contentDescription = null, 
+                        tint = if (fanActive) Blue else LightMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (fanActive) "Fan ON" else "Fan Off", color = if (fanActive) Blue else Muted, fontSize = 14.sp, fontWeight = if (fanActive) FontWeight.Bold else FontWeight.Normal)
+                }
             }
         }
 
         AppCard(background = SoftGray) {
-            DetailRow("◷  Last Check", "10 mins ago")
+            DetailRow("◷  Last Check", lastCheck)
             Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
-            DetailRow("☁  Cloud Sync", "● Synced")
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = Muted, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Cloud Link", color = Muted, fontSize = 14.sp)
+                }
+                Text(if (isOnline) "● Online" else "● Offline", color = if (isOnline) Green else Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            }
+            Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Hub, contentDescription = null, tint = Muted, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Edge Status", color = Muted, fontSize = 14.sp)
+                }
+                Text(if (isEdgeActive) "● Active" else "● Offline", color = if (isEdgeActive) Green else Red, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            }
         }
 
         Text("Quick Actions", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            ActionCard("□", "Inventory", Modifier.weight(1f)) { navigate(Screen.Inventory) }
-            ActionCard("◉", "Shelf Monitor", Modifier.weight(1f)) { navigate(Screen.Shelf) }
+            ActionCard(Icons.Rounded.Inventory2, "Inventory", Modifier.weight(1f)) { navigate(Screen.Inventory) }
+            ActionCard(Icons.Rounded.Camera, "Shelf Monitor", Modifier.weight(1f)) { navigate(Screen.Shelf) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             if (userRole == "admin") {
-                ActionCard("+", "Add Product", Modifier.weight(1f)) { navigate(Screen.ProductForm) }
+                ActionCard(Icons.Rounded.Add, "Add Product", Modifier.weight(1f)) { navigate(Screen.ProductForm) }
                 Spacer(Modifier.weight(1f))
             } else {
                 Spacer(Modifier.weight(1f))
@@ -127,7 +168,7 @@ fun HomeScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
 }
 
 @Composable
-private fun ActionCard(icon: String, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun ActionCard(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Column(
         modifier = modifier
             .height(112.dp)
@@ -140,7 +181,7 @@ private fun ActionCard(icon: String, label: String, modifier: Modifier = Modifie
         verticalArrangement = Arrangement.Center
     ) {
         Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(SoftGray), contentAlignment = Alignment.Center) {
-            Text(icon, fontSize = 24.sp, color = Color.Black)
+            Icon(icon, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
         }
         Spacer(Modifier.height(10.dp))
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Muted)

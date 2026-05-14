@@ -99,5 +99,7 @@ data class SystemSettings(
     val currentTemperature: Double = 22.4,
     val isFanActive: Boolean = false,
     val manualTriggerPending: Boolean = false,
-    val triggerBranch: String = "Both"
+    val triggerBranch: String = "Both",
+    val lastHeartbeat: Long = 0,
+    val calibrationFrame: String? = null
 )

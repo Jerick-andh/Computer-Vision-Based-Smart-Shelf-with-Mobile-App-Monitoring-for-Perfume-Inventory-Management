@@ -3,24 +3,23 @@ package com.ottoscents.smartshelf.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.AlertDialog
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ottoscents.smartshelf.MainViewModel
@@ -29,26 +28,31 @@ import com.ottoscents.smartshelf.ui.components.*
 
 @Composable
 fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
-    val handshakeStatus by viewModel.handshakeStatus.collectAsState()
+    val isEdgeActive by viewModel.isEdgeConnected.collectAsState()
+    val calibrationImage by viewModel.calibrationImage.collectAsState()
     var showBranchDialog by remember { mutableStateOf(false) }
 
     if (showBranchDialog) {
         AlertDialog(
             onDismissRequest = { showBranchDialog = false },
-            title = { Text("Manual Inventory Check", fontWeight = FontWeight.Bold) },
-            text = { Text("Which branch shelf would you like to scan? Each branch has its own set of simulation scenarios.") },
+            title = { Text("Inventory Check Mode", fontWeight = FontWeight.Bold) },
+            text = { Text("Choose a branch for sequential simulation or use 'Live Scan' to trigger the real-time webcam and AI detection.") },
             confirmButton = {},
             dismissButton = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    AppButton("Lipa Branch") { 
+                    AppButton("Live Webcam Scan", variant = ButtonVariant.Primary) { 
+                        viewModel.triggerManualInventory("Live")
+                        showBranchDialog = false
+                    }
+                    AppButton("Lipa (Simulated)") { 
                         viewModel.triggerManualInventory("Lipa")
                         showBranchDialog = false
                     }
-                    AppButton("San Pablo Branch") { 
+                    AppButton("San Pablo (Simulated)") { 
                         viewModel.triggerManualInventory("San Pablo")
                         showBranchDialog = false
                     }
-                    AppButton("Both Branches", variant = ButtonVariant.Secondary) { 
+                    AppButton("Both (Simulated)", variant = ButtonVariant.Secondary) { 
                         viewModel.triggerManualInventory("Both")
                         showBranchDialog = false
                     }
@@ -62,71 +66,93 @@ fun ShelfScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
         )
     }
 
-    ScrollScreen(topBar = { TopBar("Shelf Monitor") }) {
-        AppCard(
-            background = if (handshakeStatus.contains("VERIFIED")) GreenBg else if (handshakeStatus.contains("ERROR")) RedBg else BlueBg,
-            border = if (handshakeStatus.contains("VERIFIED")) Green else Color.Transparent
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    Text("Hardware Handshake Status", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Muted)
-                    Text(handshakeStatus, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (handshakeStatus.contains("VERIFIED")) Green else TextBlack)
-                }
-                if (handshakeStatus != "CONNECTION_VERIFIED_200_OK") {
-                    AppButton("Test Link", modifier = Modifier.width(100.dp).height(36.dp), onClick = { viewModel.triggerShelfCameraHandshake() })
+    ScrollScreen(topBar = { TopBar("Shelf & ROI Tester") }) {
+        AppCard(background = Color.Black) {
+            Column {
+                Text("Calibration Tool", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightMuted)
+                Text("Align Shelf Tray ROI", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Use this tool to physically align your webcam with the shelf zones (A, B, C, D). A live feed will open on the edge device for 30 seconds.",
+                    fontSize = 13.sp,
+                    color = LightMuted,
+                    lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.triggerManualInventory("Calibration") },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SoftGray, contentColor = TextBlack),
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Icon(Icons.Rounded.Bolt, contentDescription = null, tint = Orange, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Start Live Calibration", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                 }
             }
         }
 
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(32.dp)).background(Color(0xFFE5E7EB)).border(1.dp, BorderGray, RoundedCornerShape(32.dp))) {
-            Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) { Text("◉", color = LightMuted, fontSize = 32.sp); Text("Live View Unavailable", color = LightMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium); Text("Monitor via Dashboard", color = LightMuted, fontSize = 10.sp) }
-            
-            Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ShelfArea("Area A1", Modifier.weight(1f).fillMaxHeight()) { navigate(Screen.ShelfAreaDetail) }
-                    ShelfArea("Area A2", Modifier.weight(1f).fillMaxHeight(), color = Orange, highlighted = true) { navigate(Screen.ShelfAreaDetail) }
-                }
-                Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ShelfArea("Area B1", Modifier.weight(1f).fillMaxHeight()) { navigate(Screen.ShelfAreaDetail) }
-                    ShelfArea("Area B2", Modifier.weight(1f).fillMaxHeight(), color = Red, highlighted = true) { navigate(Screen.ShelfAreaDetail) }
-                }
-                Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ShelfArea("Area C1", Modifier.weight(1f).fillMaxHeight()) { navigate(Screen.ShelfAreaDetail) }
-                    ShelfArea("Area C2", Modifier.weight(1f).fillMaxHeight()) { navigate(Screen.ShelfAreaDetail) }
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1.2f).clip(RoundedCornerShape(32.dp)).background(Color(0xFFE5E7EB)).border(1.dp, BorderGray, RoundedCornerShape(32.dp))) {
+            if (calibrationImage != null) {
+                Image(
+                    bitmap = calibrationImage!!.asImageBitmap(),
+                    contentDescription = "Live Calibration Feed",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ShelfAreaLabel("ZONE A", Modifier.weight(1f).fillMaxHeight())
+                        ShelfAreaLabel("ZONE B", Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ShelfAreaLabel("ZONE C", Modifier.weight(1f).fillMaxHeight())
+                        ShelfAreaLabel("ZONE D", Modifier.weight(1f).fillMaxHeight())
+                    }
                 }
             }
-            Text("● 10 mins ago", modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).clip(RoundedCornerShape(999.dp)).background(Color.Black.copy(alpha = 0.65f)).padding(horizontal = 12.dp, vertical = 8.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            
+            val overlayLabel = if (calibrationImage != null) "LIVE CAMERA FEED" else "ROI OVERLAY ACTIVE"
+            Text(overlayLabel, modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(999.dp)).background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatusChip("142 on Shelf", ChipVariant.Normal)
-            StatusChip("3 Needs Review", ChipVariant.Review)
-            StatusChip("1 Missing", ChipVariant.Missing)
-        }
+
         Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(SoftGray).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(18.dp)).padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("☁  Cloud Sync Active", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted)
-            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Green))
+            Column {
+                Text("Physical Alignment Status", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Muted, letterSpacing = 1.sp)
+                Text(
+                    if (isEdgeActive) "Edge Device Connected" else "Edge Device Offline", 
+                    fontSize = 14.sp, 
+                    fontWeight = FontWeight.Medium, 
+                    color = TextBlack
+                )
+            }
+            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(if (isEdgeActive) Green else Red))
         }
         
-        AppButton(
-            text = "◉  Run Manual Inventory Check", 
-            onClick = { showBranchDialog = true }
-        )
-
-        AppButton("Capture Schedule", variant = ButtonVariant.Secondary, onClick = { navigate(Screen.Schedule) })
+        Button(
+            onClick = { showBranchDialog = true },
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) {
+            Icon(Icons.Rounded.CenterFocusStrong, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Run Inventory Check / Live Scan", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        }
     }
 }
 
 @Composable
-private fun ShelfArea(text: String, modifier: Modifier, color: Color = Color.White, highlighted: Boolean = false, onClick: () -> Unit) {
+private fun ShelfAreaLabel(text: String, modifier: Modifier) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (highlighted) color.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f))
-            .border(2.dp, if (highlighted) color.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .background(Color.Black.copy(alpha = 0.08f))
+            .border(2.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
             .padding(8.dp),
-        contentAlignment = Alignment.BottomStart
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Text(text, modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(if (highlighted) color else Color.White.copy(alpha = 0.9f)).padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (highlighted) Color.White else Color.Black)
+        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Muted, textAlign = TextAlign.Center)
     }
 }

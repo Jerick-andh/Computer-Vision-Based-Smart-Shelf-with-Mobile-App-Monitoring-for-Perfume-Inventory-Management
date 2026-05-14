@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,7 +55,9 @@ fun TemperatureMonitorScreen(viewModel: MainViewModel, navigate: (Screen) -> Uni
         AppCard(background = SoftGray) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) { 
-                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).border(1.dp, BorderGray, CircleShape), contentAlignment = Alignment.Center) { Text("☁") }
+                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White).border(1.dp, BorderGray, CircleShape), contentAlignment = Alignment.Center) { 
+                        Icon(Icons.Rounded.Air, contentDescription = null, tint = if (fanActive) Blue else Muted, modifier = Modifier.size(20.dp))
+                    }
                     Spacer(Modifier.width(12.dp))
                     Column { Text("Cooling Fan", fontWeight = FontWeight.SemiBold); Text(if (fanActive) "Running..." else "Last active: 12:00 PM", fontSize = 12.sp, color = Muted) } 
                 }
@@ -64,8 +68,27 @@ fun TemperatureMonitorScreen(viewModel: MainViewModel, navigate: (Screen) -> Uni
         if (userRole == "admin" || userRole == "staff") {
             Text("Prototype Controls", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextBlack, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                AppButton("Trigger Spike", modifier = Modifier.weight(1f), onClick = { viewModel.simulateTemperatureSpike() })
-                AppButton("Reset", variant = ButtonVariant.Secondary, modifier = Modifier.weight(1f), onClick = { viewModel.resetCoolingSystem() })
+                Button(
+                    onClick = { viewModel.simulateTemperatureSpike() },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black, contentColor = Color.White),
+                    modifier = Modifier.weight(1f).height(52.dp)
+                ) {
+                    Icon(Icons.Rounded.TrendingUp, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Trigger Spike", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                }
+                
+                Button(
+                    onClick = { viewModel.resetCoolingSystem() },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SoftGray, contentColor = TextBlack),
+                    modifier = Modifier.weight(1f).height(52.dp)
+                ) {
+                    Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Reset", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                }
             }
         }
 

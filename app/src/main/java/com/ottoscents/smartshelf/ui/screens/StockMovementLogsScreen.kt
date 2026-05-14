@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -104,7 +106,21 @@ private fun MovementLogCard(log: MovementLog, onClick: () -> Unit) {
     val label = when (log.status) { "present" -> "Bottle Present"; "missing" -> "Bottle Missing"; "returned" -> "Bottle Returned"; "restocked" -> "Restocked"; "verified" -> "Manually Verified"; else -> "Needs Review" }
     val variant = when (log.status) { "missing" -> ChipVariant.Critical; "needs_review" -> ChipVariant.Warning; else -> ChipVariant.Normal }
     Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(16.dp)) {
-        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (variant == ChipVariant.Critical) RedBg else if (variant == ChipVariant.Warning) YellowBg else GreenBg), contentAlignment = Alignment.Center) { Text(if (log.status == "missing") "!" else "✓") }
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(
+                if (variant == ChipVariant.Critical) RedBg 
+                else if (variant == ChipVariant.Warning) YellowBg 
+                else GreenBg
+            ), 
+            contentAlignment = Alignment.Center
+        ) { 
+            Icon(
+                imageVector = if (log.status == "missing") Icons.Rounded.PriorityHigh else Icons.Rounded.Check,
+                contentDescription = null,
+                tint = if (variant == ChipVariant.Critical) Red else if (variant == ChipVariant.Warning) Yellow else Green,
+                modifier = Modifier.size(20.dp)
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Column { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium); Text(log.productName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }; StatusChip(log.quantity.toString(), variant, small = true) }

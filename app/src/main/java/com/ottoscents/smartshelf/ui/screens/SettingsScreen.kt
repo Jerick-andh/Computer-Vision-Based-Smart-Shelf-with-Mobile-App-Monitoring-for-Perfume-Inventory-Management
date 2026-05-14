@@ -7,6 +7,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -139,11 +141,12 @@ fun SelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 options.forEach { option ->
+                    val isSelected = option == current
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (option == current) Blue.copy(alpha = 0.08f) else Color.Transparent)
+                            .background(if (isSelected) Blue.copy(alpha = 0.08f) else Color.Transparent)
                             .clickable { onSelect(option) }
                             .padding(14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -152,12 +155,12 @@ fun SelectionDialog(
                         Text(
                             text = option, 
                             fontSize = 15.sp, 
-                            fontWeight = if (option == current) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (option == current) Blue else TextBlack
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (isSelected) Blue else TextBlack
                         )
-                        if (option == current) {
+                        if (isSelected) {
                             Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Blue), contentAlignment = Alignment.Center) {
-                                Text("✓", color = Color.White, fontSize = 12.sp)
+                                Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                             }
                         }
                     }

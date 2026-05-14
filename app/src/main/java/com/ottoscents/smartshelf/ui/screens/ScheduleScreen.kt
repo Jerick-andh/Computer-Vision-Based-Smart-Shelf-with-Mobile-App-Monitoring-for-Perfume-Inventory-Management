@@ -5,8 +5,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,15 +40,31 @@ fun ScheduleScreen(viewModel: MainViewModel, back: () -> Unit) {
                         RadioButton(selected = i == 1, onClick = {})
                     }
                 }
-                Text("+ Custom interval", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted, modifier = Modifier.padding(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(14.dp)) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, tint = Muted, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Custom interval", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted)
+                }
             } else {
                 listOf("09:00 AM", "12:00 PM", "03:00 PM", "06:00 PM").forEach { time ->
                     Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, BorderGray, RoundedCornerShape(18.dp)).background(Color.White).padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("◷  $time", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text("⌫", color = LightMuted)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Schedule, contentDescription = null, tint = Muted, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(time, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        }
+                        IconButton(onClick = { /* TODO */ }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = LightMuted, modifier = Modifier.size(18.dp))
+                        }
                     }
                 }
-                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, BorderGray, RoundedCornerShape(18.dp)).padding(16.dp), contentAlignment = Alignment.Center) { Text("+  Add Time", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted) }
+                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, BorderGray, RoundedCornerShape(18.dp)).padding(16.dp), contentAlignment = Alignment.Center) { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Add, contentDescription = null, tint = Muted, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add Time", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Muted) 
+                    }
+                }
             }
             AppButton("Save Schedule Settings")
             Spacer(Modifier.height(10.dp))

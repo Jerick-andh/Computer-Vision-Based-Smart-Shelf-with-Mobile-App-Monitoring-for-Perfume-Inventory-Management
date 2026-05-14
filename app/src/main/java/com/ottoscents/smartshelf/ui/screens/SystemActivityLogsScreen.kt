@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -107,8 +109,11 @@ fun SystemActivityLogsScreen(viewModel: MainViewModel, back: () -> Unit) {
 private fun ActivityCard(activity: SystemActivity) {
     val label = when (activity.type) { "user_login" -> "User Login"; "product_update" -> "Product Update"; "schedule_change" -> "Schedule Change"; "shelf_check" -> "Shelf Check"; "inventory_update" -> "Inventory Update"; "temperature_alert" -> "Temperature Alert"; "fan_activation" -> "Fan Activation"; "cloud_backup" -> "Cloud Backup"; else -> "Synchronization" }
     val bg = when (activity.type) { "temperature_alert" -> RedBg; "inventory_update" -> GreenBg; "cloud_backup" -> IndigoBg; "sync_event" -> TealBg; "product_update" -> PurpleBg; "schedule_change" -> OrangeBg; "fan_activation" -> BlueBg; else -> SoftGray }
+    val iconColor = when (activity.type) { "temperature_alert" -> Red; "inventory_update" -> Green; "fan_activation" -> Blue; else -> Muted }
     Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(18.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
-        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Text("•") }
+        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { 
+            Icon(Icons.Rounded.History, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label.uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.sp); Text(activity.timestamp.substringAfter("•").trim(), fontSize = 12.sp, color = LightMuted) }

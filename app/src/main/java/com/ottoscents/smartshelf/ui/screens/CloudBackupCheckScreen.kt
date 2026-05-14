@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,19 +22,39 @@ import com.ottoscents.smartshelf.ui.components.*
 fun CloudBackupCheckScreen(navigate: (Screen) -> Unit, back: () -> Unit) {
     var processing by remember { mutableStateOf(false) }
     ScrollScreen(background = AppBg, topBar = { TopBar("Cloud Backup Check", showBack = true, onBack = back) }) {
-        AppCard(background = YellowBg, border = Color(0xFFFDE68A)) { Text("⚠  Unclear Results", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextBlack); Text("The local check produced ambiguous detection results.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
+        AppCard(background = YellowBg, border = Color(0xFFFDE68A)) { 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.PriorityHigh, contentDescription = null, tint = Orange, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Unclear Results", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = TextBlack)
+            }
+            Text("The local check produced ambiguous detection results.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) 
+        }
         AppCard(background = CardBg) {
-            Text("✓  Cloud Processing Complete", fontSize = 16.sp, color = Green, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Check, contentDescription = null, tint = Green, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Cloud Processing Complete", fontSize = 16.sp, color = Green, fontWeight = FontWeight.Medium)
+            }
             Spacer(Modifier.height(14.dp))
             DetailRow("Product", "Midnight Oud"); ThinDivider(); DetailRow("Branch", "San Pablo"); ThinDivider(); DetailRow("Shelf Area", "Area A1"); ThinDivider(); DetailRow("Timestamp", "May 1, 2026 • 2:30 PM")
         }
         Text("Processed Image".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp)
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1.75f).clip(RoundedCornerShape(28.dp)).background(SoftGray).border(1.dp, BorderGray, RoundedCornerShape(28.dp)), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("☁", fontSize = 30.sp, color = LightMuted); Text("Image processed by cloud", fontSize = 14.sp, color = LightMuted) } }
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(1.75f).clip(RoundedCornerShape(28.dp)).background(SoftGray).border(1.dp, BorderGray, RoundedCornerShape(28.dp)), contentAlignment = Alignment.Center) { 
+            Column(horizontalAlignment = Alignment.CenterHorizontally) { 
+                Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = LightMuted, modifier = Modifier.size(32.dp))
+                Text("Image processed by cloud", fontSize = 14.sp, color = LightMuted) 
+            } 
+        }
         Text("Detection Results".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp)
         AppCard(background = Color.White) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth()) { CountCard("Bottles on Shelf", "11", Modifier.weight(1f)); CountCard("Confidence", "87%", Modifier.weight(1f)) }
             Spacer(Modifier.height(16.dp)); ThinDivider(); Spacer(Modifier.height(12.dp))
-            Text("⚠  1 item needs manual review", fontSize = 14.sp, color = Muted)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.PriorityHigh, contentDescription = null, tint = Orange, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("1 item needs manual review", fontSize = 14.sp, color = Muted)
+            }
         }
         AppButton(if (processing) "Accepting..." else "Accept Result", enabled = !processing, onClick = { processing = true; back() })
         AppButton("Manual Review", variant = ButtonVariant.Outline, onClick = { navigate(Screen.ProductDetail) })

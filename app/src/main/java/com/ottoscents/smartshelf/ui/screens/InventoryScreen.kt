@@ -7,6 +7,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -54,7 +58,9 @@ fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onSele
                 title = "Inventory", 
                 right = { 
                     if (userRole == "admin") {
-                        AppButton("+", modifier = Modifier.width(44.dp).height(44.dp), onClick = { navigate(Screen.ProductForm) }) 
+                        IconButton(onClick = { navigate(Screen.ProductForm) }, modifier = Modifier.size(44.dp)) {
+                            Icon(Icons.Rounded.Add, contentDescription = "Add Product", tint = TextBlack)
+                        }
                     }
                 }
             ) 
@@ -69,7 +75,9 @@ fun InventoryScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit, onSele
                 singleLine = true, 
                 shape = RoundedCornerShape(18.dp)
             )
-            Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(18.dp)).background(SoftGray).border(1.dp, BorderGray, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { Text("☰", color = Muted) }
+            Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(18.dp)).background(SoftGray).border(1.dp, BorderGray, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { 
+                Icon(Icons.Rounded.FilterList, contentDescription = "Filter", tint = Muted)
+            }
         }
         Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val filters = listOf("All Items", "Low Stock", "Missing", "Misplaced", "Needs Review")
@@ -171,13 +179,16 @@ private fun InventoryCard(item: InventoryItem, onClick: () -> Unit) {
                 Text(displayName, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextBlack)
                 Text("${item.category} • ${item.shelf}", fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 2.dp))
                 if (item.branch.isNotEmpty()) {
-                    Text(
-                        text = "📍 ${item.branch}",
-                        fontSize = 11.sp,
-                        color = Blue,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                        Icon(Icons.Rounded.LocationOn, contentDescription = null, tint = Blue, modifier = Modifier.size(12.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = item.branch,
+                            fontSize = 11.sp,
+                            color = Blue,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
             StatusChip(label, variant)

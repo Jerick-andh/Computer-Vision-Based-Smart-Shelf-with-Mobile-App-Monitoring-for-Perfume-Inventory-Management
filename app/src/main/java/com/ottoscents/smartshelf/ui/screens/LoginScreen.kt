@@ -3,6 +3,9 @@ package com.ottoscents.smartshelf.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoGraph
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,11 +33,18 @@ fun LoginScreen(viewModel: MainViewModel) {
             .fillMaxSize()
             .background(Color.White)
             .padding(horizontal = 24.dp)
-            .padding(top = 100.dp, bottom = 30.dp),
+            .padding(top = 80.dp, bottom = 30.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Column {
+                Icon(
+                    imageVector = Icons.Rounded.AutoGraph, 
+                    contentDescription = null,
+                    tint = Blue,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(Modifier.height(16.dp))
                 Text("Otto Scents", fontSize = 36.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.6).sp, color = TextBlack)
                 Text(
                     if (isRegisterMode) "Create Staff Account" else "Smart Shelf Monitoring", 

@@ -5,6 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,7 +41,9 @@ fun ProductDetailScreen(item: InventoryItem?, navigate: (Screen) -> Unit, back: 
                 onBack = back, 
                 right = { 
                     if (userRole == "admin") {
-                        Text("✎", modifier = Modifier.clickable { navigate(Screen.ProductForm) }.padding(8.dp), color = Muted, fontSize = 20.sp) 
+                        IconButton(onClick = { navigate(Screen.ProductForm) }, modifier = Modifier.size(44.dp)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = "Edit Product", tint = TextBlack)
+                        }
                     }
                 }
             ) 

@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,7 +104,18 @@ fun FanActivityCard(log: FanActivity) {
     val label = when (log.status) { "active" -> "Currently Running"; "manual_stop" -> "Manually Stopped"; else -> "Auto Stopped" }
     val variant = if (log.status == "manual_stop") ChipVariant.Warning else ChipVariant.Normal
     AppCard(background = Color.White, radius = 18.dp) {
-        Row(verticalAlignment = Alignment.Top) { Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (log.status == "active") BlueBg else SoftGray), contentAlignment = Alignment.Center) { Text("☁") }; Spacer(Modifier.width(12.dp)); Column(modifier = Modifier.weight(1f)) { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium); StatusChip(log.status.replace("_", " "), variant, small = true) }; Text("${log.branch} • ${log.shelfArea}", fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) } }
+        Row(verticalAlignment = Alignment.Top) { 
+            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(if (log.status == "active") BlueBg else SoftGray), contentAlignment = Alignment.Center) { 
+                Icon(Icons.Rounded.Air, contentDescription = null, tint = if (log.status == "active") Blue else Muted, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) { 
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { 
+                    Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    StatusChip(log.status.replace("_", " "), variant, small = true) 
+                }; Text("${log.branch} • ${log.shelfArea}", fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) 
+            } 
+        }
         Spacer(Modifier.height(12.dp)); ThinDivider(); Spacer(Modifier.height(10.dp))
         DetailRow("Trigger Temp:", "${log.triggerTemperature}°C", Red); DetailRow("Started:", log.startTime); if (log.stopTime != null) DetailRow("Stopped:", log.stopTime); ThinDivider(); DetailRow("Total Duration", log.duration)
         if (log.status == "active") Text("● Fan is currently running", fontSize = 12.sp, color = Blue, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))

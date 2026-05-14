@@ -19,19 +19,70 @@ import com.ottoscents.smartshelf.ui.components.*
 
 @Composable
 fun HelpGuideScreen(back: () -> Unit) {
-    var expanded by remember { mutableStateOf("needs_review") }
+    var expanded by remember { mutableStateOf("calibrate_roi") }
     val topics = listOf(
-        HelpTopic("needs_review", "Understanding \"Needs Review\"", "Learn what this status means and how to handle it", listOf("When you see 'Needs Review', it means the smart shelf detected something unclear or unexpected.", "This could be due to poor lighting, bottles placed incorrectly, or new products not yet in the system.", "To resolve: Go to the shelf, check the bottles manually, and confirm the actual count in the app.", "You can also take a new photo to help the system learn better.")),
-        HelpTopic("verify_shelf", "Verifying Shelf Results", "How to confirm what the camera detected", listOf("After each shelf check, the app shows you how many bottles are on the shelf.", "Compare this number (Shelf) with what you see on the shelf.", "If the numbers match the system record (System), tap 'Confirm' to accept the result.", "If they don't match, tap 'Needs Review' and count manually.", "Always verify important changes like restocks or missing bottles.")),
-        HelpTopic("schedule", "Changing Shelf Check Schedule", "Adjust how often the system checks inventory", listOf("Go to Settings → Shelf Check Schedule.", "You can choose how often the camera checks the shelf (every 1, 2, 4, or 8 hours).", "For busy stores, check more often (every 1-2 hours).", "For slower stores, every 4-8 hours is enough.", "Changes apply immediately after you save.")),
-        HelpTopic("temperature", "Responding to Temperature Alerts", "What to do when the shelf gets too hot", listOf("Perfumes should be stored below 25°C to maintain quality.", "When temperature goes above 25°C, the cooling fan turns on automatically.", "If you get an alert, check that the fan is working (you'll hear it running).", "Make sure nothing is blocking the fan vents.", "If temperature stays high, move bottles to a cooler area temporarily.")),
-        HelpTopic("cloud_backup", "Handling Cloud Backup Checks", "When the local camera needs cloud help", listOf("Sometimes the camera on the shelf can't get a clear result (poor light, unclear image).", "When this happens, the photo is sent to the cloud for better processing.", "You'll get a notification when cloud processing is done.", "Review the cloud result and confirm if it looks correct.", "If still unclear, you can manually count and update the inventory."))
+        HelpTopic(
+            id = "calibrate_roi", 
+            title = "Aligning the Shelf (ROI)", 
+            description = "How to calibrate your camera using Region of Interest (ROI)", 
+            paragraphs = listOf(
+                "Go to the 'Shelf & ROI Tester' screen and tap 'Start Live Calibration'.",
+                "A live feed window will open on your edge device with 4 green zone boxes (A, B, C, D).",
+                "Physically adjust your camera until each shelf tray area is perfectly centered within its green box.",
+                "This ensures the AI accurately identifies which perfume belongs in which area.",
+                "Press 'Q' on the edge device to close the calibration window early."
+            )
+        ),
+        HelpTopic(
+            id = "inventory_modes", 
+            title = "Live vs. Simulated Scans", 
+            description = "Choose between demo scenarios and real hardware scans", 
+            paragraphs = listOf(
+                "When you tap 'Run Inventory Check', you have two powerful options:",
+                "1. Simulated Scans (Lipa/San Pablo): These cycle through 6 professional demo scenarios (Full, Sale, Low Stock, etc.).",
+                "2. Live Webcam Scan: This snaps a REAL photo from your camera and runs the YOLO AI on it instantly.",
+                "Use 'Live Scan' to prove the hardware integration, and 'Simulated' to show how the app handles complex stock changes."
+            )
+        ),
+        HelpTopic(
+            id = "edge_connectivity", 
+            title = "Monitoring Edge & Cloud Health", 
+            description = "Understanding the real-time connectivity lights", 
+            paragraphs = listOf(
+                "Check the status cards on your Dashboard for two real-time indicators:",
+                "● Cloud Link: Green means your app is online. Red means you have no internet/Wi-Fi.",
+                "● Edge Status: Green means your simulator is running and 'pinging' the cloud. Red means the hardware is offline.",
+                "The 'Last Check' time is dynamic and updates automatically after every successful scan activity."
+            )
+        ),
+        HelpTopic(
+            id = "misplaced_logic", 
+            title = "Detecting Misplaced Items", 
+            description = "How the AI identifies bottles in the wrong area", 
+            paragraphs = listOf(
+                "The system uses the YOLO model to detect the type of perfume (A, B, C, or D) and its coordinates.",
+                "If Perfume A is detected physically sitting in Area D, the app will flag it as 'Misplaced'.",
+                "You will receive a purple 📍 alert telling you exactly where the bottle is and where it belongs.",
+                "This prevents stock confusion and ensures your shelf layout is always correct."
+            )
+        ),
+        HelpTopic(
+            id = "automated_cooling", 
+            title = "Automated Climate Control", 
+            description = "How the cooling fan simulation keeps perfumes safe", 
+            paragraphs = listOf(
+                "Perfumes must be stored at safe temperatures (typically below 25°C) to maintain quality.",
+                "If the temperature goes above your set threshold, the edge hardware automatically 'activates' the cooling fan.",
+                "You can watch the temperature drop in real-time on the Climate Control screen.",
+                "The fan turns off automatically once the safe temperature (22°C) is reached, and the event is logged."
+            )
+        )
     )
     ScrollScreen(background = AppBg, topBar = { TopBar("Help & Guide", showBack = true, onBack = back) }) {
-        AppCard(background = CardBg) { Text("Quick Help Guide", fontSize = 16.sp, fontWeight = FontWeight.SemiBold); Text("Simple instructions for using the smart shelf monitoring app.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
-        Text("Common Topics".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp)
+        AppCard(background = CardBg) { Text("Quick Help Guide", fontSize = 16.sp, fontWeight = FontWeight.SemiBold); Text("Instructions for your refined Smart Shelf monitoring system.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 4.dp)) }
+        Text("System Manual".uppercase(), fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium, letterSpacing = 1.8.sp)
         topics.forEach { topic -> HelpTopicCard(topic, expanded == topic.id, onClick = { expanded = if (expanded == topic.id) "" else topic.id }) }
-        AppCard(background = Color.White) { Text("Need More Help?", fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text("Contact your system administrator for technical support or hardware issues.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)); AppButton("Contact Support") }
+        AppCard(background = Color.White) { Text("Demonstration Ready", fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text("Your Smart Shelf prototype is now fully integrated with AI vision, real-time hardware monitoring, and automated cooling.", fontSize = 14.sp, color = Muted, modifier = Modifier.padding(top = 6.dp, bottom = 14.dp)); AppButton("View System Logs") }
     }
 }
 
@@ -39,12 +90,12 @@ fun HelpGuideScreen(back: () -> Unit) {
 private fun HelpTopicCard(topic: HelpTopic, expanded: Boolean, onClick: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White).border(1.dp, BorderGray.copy(alpha = 0.5f), RoundedCornerShape(18.dp))) {
         Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) { Text(topic.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold); Text(topic.description, fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 2.dp)) }
-            Text(if (expanded) "−" else "+", fontSize = 24.sp, color = Muted)
+            Column(modifier = Modifier.weight(1f)) { Text(topic.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (expanded) Blue else TextBlack); Text(topic.description, fontSize = 12.sp, color = Muted, modifier = Modifier.padding(top = 2.dp)) }
+            Text(if (expanded) "−" else "+", fontSize = 24.sp, color = if (expanded) Blue else Muted)
         }
         if (expanded) {
             ThinDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(16.dp)) { topic.paragraphs.forEachIndexed { index, paragraph -> Row { Text("${index + 1}.", fontSize = 14.sp, color = Muted, modifier = Modifier.width(24.dp)); Text(paragraph, fontSize = 14.sp, color = TextBlack, lineHeight = 20.sp) } } }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(16.dp)) { topic.paragraphs.forEachIndexed { index, paragraph -> Row { Text("${index + 1}.", fontSize = 14.sp, color = Blue, modifier = Modifier.width(24.dp)); Text(paragraph, fontSize = 14.sp, color = TextBlack, lineHeight = 20.sp) } } }
         }
     }
 }

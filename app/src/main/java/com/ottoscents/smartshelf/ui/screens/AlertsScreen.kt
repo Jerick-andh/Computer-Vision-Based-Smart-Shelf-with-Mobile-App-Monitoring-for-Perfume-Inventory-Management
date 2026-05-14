@@ -6,6 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,12 +37,12 @@ fun AlertsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
             val isTemp = alert.title.contains("Temperature")
             
             val icon = when {
-                isLowStock -> "📉"
-                isOutOfStock -> "🚫"
-                isMisplaced -> "📍"
-                isTemp -> "🔥"
-                alert.type == "cloud" -> "☁"
-                else -> "!"
+                isLowStock -> Icons.AutoMirrored.Rounded.TrendingDown
+                isOutOfStock -> Icons.Rounded.Block
+                isMisplaced -> Icons.Rounded.WrongLocation
+                isTemp -> Icons.Rounded.Whatshot
+                alert.type == "cloud" -> Icons.Rounded.CloudUpload
+                else -> Icons.Rounded.Info
             }
             
             val iconBg = when {
@@ -82,7 +86,7 @@ fun AlertsScreen(viewModel: MainViewModel, navigate: (Screen) -> Unit) {
                         .background(iconBg),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = icon, color = iconColor, fontSize = 20.sp)
+                    Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
