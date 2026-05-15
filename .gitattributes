@@ -1,0 +1,21 @@
+# Normalize line endings and avoid CRLF/LF issues across contributors
+* text=auto
+
+# Explicit rules
+*.kt text eol=lf
+*.java text eol=lf
+*.xml text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+
+# Ensure binary files are not treated as text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.jar binary
+*.aar binary
+

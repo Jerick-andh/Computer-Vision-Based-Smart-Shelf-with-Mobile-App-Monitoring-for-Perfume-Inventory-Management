@@ -1,0 +1,59 @@
+# IDE - Android Studio
+*.iml
+.idea/
+.gradle/
+.gradle
+local.properties
+/local.properties
+
+# Build directories
+/build
+build/
+/captures
+.externalNativeBuild
+.cxx
+
+# OS files
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Log files
+*.log
+*.txt
+
+# Python scripts
+*.py
+*.pyc
+__pycache__/
+.venv/
+venv/
+venv_train/
+.ipynb_checkpoints/
+perfume_dataset/
+
+# Build outputs
+*.apk
+*.ap_
+*.dex
+
+# Gradle wrapper (optional - uncomment if you want to ignore it)
+# gradlew
+# gradlew.bat
+
+# Google Services
+google-services.json
+
+# Private keys
+*.keystore
+*.jks
+
+# Backup files
+*.bak
+*.backup
+*~
+*.tmp
